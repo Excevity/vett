@@ -2,7 +2,12 @@ name: Daily Vett Short
 
 on:
   schedule:
-    - cron: "0 16 * * *"      # 16:00 UTC daily (~noon ET). Adjust as you like.
+    # 18:37 UTC = 1:37 PM EST. Odd minute on purpose — on-the-hour crons get
+    # queued/dropped when GitHub's schedulers are busiest. NOTE: GitHub cron is
+    # always UTC and does NOT observe daylight saving, so from ~Mar–Nov (EDT)
+    # this fires at 2:37 PM local. Change to "37 17 * * *" if you want 1:37 PM
+    # local during summer instead.
+    - cron: "37 18 * * *"
   workflow_dispatch:           # lets you run it manually from the Actions tab
     inputs:
       privacy:
