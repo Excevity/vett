@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="head">
+    <span id="logo">Vett</span>
+    <span id="tag"></span>
+    <select id="lang"></select>
+  </div>
+
+  <div id="tabs">
+    <button class="tab" data-view="check"></button>
+    <button class="tab" data-view="compare"></button>
+    <button class="tab" data-view="positions"></button>
+    <button class="tab" data-view="watch"></button>
+    <button class="tab" data-view="top"></button>
+  </div>
+
+  <!-- CHECK -->
+  <div class="view" id="view-check">
+    <div class="inp"><input id="addr" type="text" spellcheck="false" autocomplete="off"><button id="go" class="pri"></button></div>
+    <div id="out"></div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="view" id="view-compare" hidden>
+    <input id="cmpA" class="w" type="text" spellcheck="false" autocomplete="off">
+    <input id="cmpB" class="w" type="text" spellcheck="false" autocomplete="off">
+    <button id="cmpGo" class="pri w"></button>
+    <div id="cmpOut"></div>
+  </div>
+
+  <!-- POSITIONS -->
+  <div class="view" id="view-positions" hidden>
+    <div class="inp"><input id="posAddr" type="text" spellcheck="false" autocomplete="off"><button id="posGo" class="pri"></button></div>
+    <div id="posOut"></div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div class="view" id="view-watch" hidden>
+    <div id="watchHint" class="hint"></div>
+    <div id="watchOut"></div>
+  </div>
+
+  <!-- TOP -->
+  <div class="view" id="view-top" hidden>
+    <button id="topGo" class="pri w"></button>
+    <div id="topOut"></div>
+  </div>
+
+  <div id="foot">
+    <a id="botlink" href="https://t.me/vett_hl_bot" target="_blank">💬 Telegram bot</a>
+    <a id="shareLink" href="#" target="_blank"></a>
+  </div>
+
+  <script src="analyzer.js"></script>
+  <script src="i18n.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

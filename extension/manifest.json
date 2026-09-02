@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Vett — Honest HL Wallet Checker",
+  "version": "0.2.0",
+  "description": "Before you copy any Hyperliquid wallet, see what a copier would REALLY earn after fees, slippage and luck. Check, compare, watch & get alerts.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Vett — check a wallet"
+  },
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["tabs", "storage", "alarms", "notifications"],
+  "host_permissions": [
+    "https://api.hyperliquid.xyz/*",
+    "https://stats-data.hyperliquid.xyz/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://app.hyperliquid.xyz/*",
+        "https://hyperliquid.xyz/*",
+        "https://*.hyperdash.info/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

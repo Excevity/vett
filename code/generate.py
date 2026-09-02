@@ -59,20 +59,42 @@ def _cover(im):
     im = im.resize((int(iw*scale), int(ih*scale)))
     x = (im.size[0]-W)//2; y = (im.size[1]-H)//2
     return im.crop((x, y, x+W, y+H))
-def fetch_bg(query):
+def _pexels(query):
     key = os.environ.get("PEXELS_KEY")
     if not key: return None
-    try:
-        u = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(query)}&per_page=20&orientation=portrait"
-        r = json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"Authorization": key}), timeout=20))
-        photos = r.get("photos", [])
-        if not photos: return None
-        src = random.choice(photos)["src"]
-        raw = urllib.request.urlopen(src.get("portrait") or src["large"], timeout=20).read()
-        im = _cover(Image.open(BytesIO(raw)).convert("RGB"))
-        return Image.eval(im, lambda p: int(p*0.22))   # darken heavily so data stays readable
-    except Exception:
-        return None
+    u = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(query)}&per_page=20&orientation=portrait"
+    r = json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"Authorization": key}), timeout=20))
+    photos = r.get("photos", [])
+    if not photos: return None
+    src = random.choice(photos)["src"]
+    return src.get("portrait") or src["large"]
+
+def _pixabay(query):
+    key = os.environ.get("PIXABAY_KEY")
+    if not key: return None
+    u = (f"https://pixabay.com/api/?key={key}&q={urllib.parse.quote(query)}"
+         f"&image_type=photo&orientation=vertical&per_page=20&safesearch=true")
+    r = json.load(urllib.request.urlopen(u, timeout=20))
+    hits = r.get("hits", [])
+    if not hits: return None
+    h = random.choice(hits)
+    return h.get("largeImageURL") or h.get("webformatURL")
+
+def fetch_bg(query):
+    for provider in (_pixabay, _pexels):        # Pixabay first (works), Pexels fallback
+        try:
+            url = provider(query)
+            if not url: continue
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            raw = urllib.request.urlopen(req, timeout=20).read()
+            im = _cover(Image.open(BytesIO(raw)).convert("RGB"))
+            im = Image.eval(im, lambda p: int(p*0.15))     # heavy darken -> subtle texture
+            # tint toward the brand background so it reads as one piece, not a photo
+            base = Image.new("RGB", (W, H), BG)
+            return Image.blend(im, base, 0.45)
+        except Exception:
+            continue
+    return None
 
 CAPTIONS = True   # burn narration subtitles at the bottom (retention on silent autoplay)
 def _wrap(d, text, fnt, maxw):
@@ -411,8 +433,8 @@ def generate(out="output/short.mp4"):
     print(f"template: {label}")
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
-    q = {"top3":"green finance chart","truth":"stock market data screen"}.get(
-        meta.get("kind"), "cryptocurrency trading dark")
+    q = {"top3":"dark abstract green gradient","truth":"dark abstract technology network"}.get(
+        meta.get("kind"), "dark abstract blue gradient")
     _BGIMG = fetch_bg(q)
     if _BGIMG is not None: print(f"  photo backdrop: on ({q})")
     total, fi = render_and_write(scenes, out)
