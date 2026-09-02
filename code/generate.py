@@ -127,15 +127,29 @@ def _wrap(d, text, fnt, maxw):
             cur=w
     if cur: lines.append(cur)
     return lines
-def draw_caption(img,d,text):
+def draw_caption(img,d,text,t=1.0):
+    """Dynamic captions: white fill + teal outline, words popping in one by one."""
     if not (CAPTIONS and text): return
-    fnt=font(44,mono=False,bold=True)
-    lines=_wrap(d,text,fnt,W-160)[:3]
-    lh=60; total=lh*len(lines); y0=1858-total
-    d.rectangle([0,y0-26,W,1892],fill=(6,8,11))   # subtle dark band
-    yy=y0
-    for ln in lines:
-        ctext(d,yy,ln,fnt,INK); yy+=lh
+    fnt=font(48,mono=False,bold=True)
+    lines=_wrap(d,text,fnt,W-180)[:3]
+    words=[ln.split() for ln in lines]
+    total=sum(len(w) for w in words) or 1
+    shown=total if t>=0.5 else max(1,int((t/0.5)*total)+1)   # all revealed by mid-scene
+    lh=66; total_h=lh*len(lines); y0=1850-total_h
+    d.rectangle([0,y0-30,W,1898],fill=(6,8,11))              # subtle band for contrast
+    idx=0; yy=y0
+    for wl in words:
+        vis=[]
+        for w in wl:
+            idx+=1
+            if idx<=shown: vis.append(w)
+        if vis:
+            s=" ".join(vis)
+            bb=d.textbbox((0,0),s,font=fnt); wpx=bb[2]-bb[0]
+            # white fill, teal (green) outline — pops off any background
+            d.text(((W-wpx)//2,yy),s,font=fnt,fill=(255,255,255),
+                   stroke_width=6,stroke_fill=TEAL)
+        yy+=lh
 
 # ---------------- scene builders (each returns (narration, draw_fn)) ----------------
 # Every video pulls its wording/labels/order from these pools so no two are the
@@ -421,8 +435,9 @@ def render_and_write(scenes, out):
         n=max(1,int(round(durs[i]*FPS)))
         for k in range(n):
             img=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(img)
-            draw_fn(img,d,k/max(1,n-1))
-            draw_caption(img,d,narr)            # burned subtitles
+            prog=k/max(1,n-1)
+            draw_fn(img,d,prog)
+            draw_caption(img,d,narr,prog)        # dynamic captions (word-by-word, white+teal outline)
             img.save(f"{tmp}/f{fi:05d}.png"); fi+=1
     with open(f"{tmp}/alist.txt","w") as f:
         for i in range(len(scenes)):
