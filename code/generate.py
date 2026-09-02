@@ -96,6 +96,26 @@ def fetch_bg(query):
             continue
     return None
 
+def chart_bg(rng=None, up_bias=0.0):
+    """Draw a subtle, ON-TOPIC candlestick chart as the backdrop — always relevant
+    and clean, unlike random stock photos. Dark/desaturated so data stays the focus."""
+    rng = rng or random
+    img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
+    for gy in range(0, H, 150):                      # faint grid
+        d.line([(0, gy), (W, gy)], fill=(15, 19, 26), width=2)
+    n = 24; cw = W // n; price = H * 0.5
+    for i in range(n):
+        o = price
+        price += rng.uniform(-70, 70) - up_bias      # up_bias<0 trends up, >0 trends down
+        price = max(H*0.2, min(H*0.85, price))
+        c = price
+        hi = min(o, c) - rng.uniform(15, 70); lo = max(o, c) + rng.uniform(15, 70)
+        x = i*cw + cw//2
+        col = (24, 56, 42) if c < o else (58, 26, 26)   # green up / red down, very dark
+        d.line([(x, hi), (x, lo)], fill=col, width=3)
+        d.rectangle([x-cw//3, min(o, c), x+cw//3, max(o, c)], fill=col)
+    return img
+
 CAPTIONS = True   # burn narration subtitles at the bottom (retention on silent autoplay)
 def _wrap(d, text, fnt, maxw):
     words=text.split(); lines=[]; cur=""
@@ -433,10 +453,16 @@ def generate(out="output/short.mp4"):
     print(f"template: {label}")
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
-    q = {"top3":"dark abstract green gradient","truth":"dark abstract technology network"}.get(
-        meta.get("kind"), "dark abstract blue gradient")
-    _BGIMG = fetch_bg(q)
-    if _BGIMG is not None: print(f"  photo backdrop: on ({q})")
+    # Default backdrop = a procedurally-drawn candlestick chart: always on-topic
+    # and clean. (Stock-photo search kept returning irrelevant junk — candles,
+    # cell towers — so photos are now opt-in via VETT_PHOTOS=1.)
+    if os.environ.get("VETT_PHOTOS") == "1":
+        _BGIMG = fetch_bg(random.choice(["forex trading graph","bitcoin price chart","market data screen"]))
+        print(f"  backdrop: photo {'on' if _BGIMG is not None else 'failed→chart'}")
+    if _BGIMG is None:
+        bias = -30 if meta.get("kind") == "top3" else 30   # top3 trends up, traps trend down
+        _BGIMG = chart_bg(rng, up_bias=bias)
+        print("  backdrop: candlestick chart")
     total, fi = render_and_write(scenes, out)
     _BGIMG = None
     json.dump(meta, open(os.path.join(os.path.dirname(out),"meta.json"),"w"))
