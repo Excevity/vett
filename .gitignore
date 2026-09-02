@@ -1,0 +1,19 @@
+# secrets — NEVER commit
+.env
+*.key
+*_secret*
+client_secret*.json
+token.json
+# voice models & binaries (too big / downloaded at setup)
+tools/
+*.onnx
+# generated media & state (anywhere in the tree)
+*.mp4
+*.wav
+*.m4a
+**/output/
+**/_tmp/
+state/used.json
+data/*.json
+__pycache__/
+*.pyc
