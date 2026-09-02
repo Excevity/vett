@@ -2,13 +2,19 @@ name: Daily Vett Short
 
 on:
   schedule:
-    # 18:37 UTC = 1:37 PM EST. Odd minute on purpose — on-the-hour crons get
-    # queued/dropped when GitHub's schedulers are busiest. NOTE: GitHub cron is
-    # always UTC and does NOT observe daylight saving, so from ~Mar–Nov (EDT)
-    # this fires at 2:37 PM local. Change to "37 17 * * *" if you want 1:37 PM
-    # local during summer instead.
-    - cron: "37 18 * * *"
-  workflow_dispatch:           # lets you run it manually from the Actions tab
+    # Twice a day (two "slots"), each with 3 attempts, because GitHub's cron is
+    # best-effort and often skips/delays. The guard (code/slot.py) makes sure we
+    # post exactly ONCE per slot — the first attempt that lands wins, the rest
+    # skip. Odd minutes avoid on-the-hour congestion. Times are UTC (no DST).
+    # AM slot (before 18:00 UTC):
+    - cron: "37 13 * * *"
+    - cron: "19 14 * * *"
+    - cron: "3 15 * * *"
+    # PM slot (18:00 UTC and later):
+    - cron: "37 20 * * *"
+    - cron: "19 21 * * *"
+    - cron: "3 22 * * *"
+  workflow_dispatch:
     inputs:
       privacy:
         description: "YouTube privacy for this run"
@@ -24,7 +30,7 @@ jobs:
   post:
     runs-on: ubuntu-latest
     env:
-      FFMPEG: ffmpeg      # use the apt-installed binaries (on PATH), not the static download
+      FFMPEG: ffmpeg
       FFPROBE: ffprobe
     steps:
       - uses: actions/checkout@v4
@@ -42,36 +48,61 @@ jobs:
           path: ~/tools
           key: vett-tools-${{ hashFiles('setup.sh') }}
 
-      - name: Cache story state (rolling, so it won't repeat wallets)
+      - name: Cache posting + story state (rolling; drives the once-per-slot guard)
         uses: actions/cache@v4
         with:
           path: state
           key: vett-state-${{ github.run_id }}
           restore-keys: vett-state-
 
+      # Decide if THIS attempt should post (skips if this slot already posted
+      # today). Manual runs always post.
+      - name: Decide slot
+        id: slot
+        run: python3 code/slot.py decide
+
+      - name: Should this run post?
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.slot.outputs.post }}" = "yes" ]; then
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=no" >> "$GITHUB_OUTPUT"
+            echo "Slot '${{ steps.slot.outputs.slot }}' already posted today — skipping."
+          fi
+
       - name: Setup toolchain + python deps
+        if: steps.gate.outputs.go == 'yes'
         run: bash setup.sh
 
       - name: Scan leaderboard
+        if: steps.gate.outputs.go == 'yes'
         run: python3 code/scan.py 200
 
       - name: Generate short
+        if: steps.gate.outputs.go == 'yes'
         run: python3 code/generate.py
 
-      - name: Publish to YouTube
+      - name: Publish (YouTube + TikTok)
+        if: steps.gate.outputs.go == 'yes'
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          # TikTok (optional — pipeline skips it until these are set)
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
           TIKTOK_DIRECT: ${{ vars.TIKTOK_DIRECT }}
         run: python3 code/publish.py "${{ github.event.inputs.privacy || 'public' }}"
 
+      # Mark the slot done ONLY after a successful scheduled post, so the other
+      # attempts in this slot skip. Manual runs don't mark (they're on-demand).
+      - name: Mark slot posted
+        if: steps.gate.outputs.go == 'yes' && github.event_name == 'schedule'
+        run: python3 code/slot.py mark ${{ steps.slot.outputs.slot }}
+
       - name: Save the generated video as an artifact
-        if: always()
+        if: steps.gate.outputs.go == 'yes'
         uses: actions/upload-artifact@v4
         with:
           name: short
