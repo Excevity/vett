@@ -1,0 +1,69 @@
+name: Daily Vett Short
+
+on:
+  schedule:
+    - cron: "0 16 * * *"      # 16:00 UTC daily (~noon ET). Adjust as you like.
+  workflow_dispatch:           # lets you run it manually from the Actions tab
+    inputs:
+      privacy:
+        description: "YouTube privacy for this run"
+        default: "public"
+        type: choice
+        options: [public, unlisted, private]
+
+concurrency:
+  group: daily-short
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+
+      - name: Cache toolchain (ffmpeg + Kokoro model ~340MB)
+        uses: actions/cache@v4
+        with:
+          path: ~/tools
+          key: vett-tools-${{ hashFiles('setup.sh') }}
+
+      - name: Cache story state (rolling, so it won't repeat wallets)
+        uses: actions/cache@v4
+        with:
+          path: state
+          key: vett-state-${{ github.run_id }}
+          restore-keys: vett-state-
+
+      - name: Setup toolchain + python deps
+        run: bash setup.sh
+
+      - name: Scan leaderboard
+        run: python3 code/scan.py 200
+
+      - name: Generate short
+        run: python3 code/generate.py
+
+      - name: Publish to YouTube
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: python3 code/publish.py "${{ github.event.inputs.privacy || 'public' }}"
+
+      - name: Save the generated video as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short
+          path: |
+            output/short.mp4
+            output/meta.json
+          if-no-files-found: ignore
+          retention-days: 7

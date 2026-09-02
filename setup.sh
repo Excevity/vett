@@ -1,12 +1,27 @@
 #!/bin/bash
-# No-root setup: static ffmpeg, Piper TTS + voice, python libs (user space).
+# No-root setup: static ffmpeg + Kokoro TTS model + python libs.
+# Honors VETT_TOOLS (defaults to ~/tools) so it works locally AND in CI.
 set -e
-mkdir -p ~/tools && cd ~/tools
-[ -f ffmpeg ] || { curl -sSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ff.tar.xz; tar xf ff.tar.xz; mv ffmpeg-*-static/ffmpeg ffmpeg-*-static/ffprobe .; rm -rf ffmpeg-*-static ff.tar.xz; }
-[ -d piper ] || { curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz -o p.tgz; tar xf p.tgz; rm p.tgz; }
-mkdir -p piper/voices && cd piper/voices
-b="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium"
-[ -f amy.onnx ] || curl -sSL "$b/en_US-amy-medium.onnx" -o amy.onnx
-[ -f amy.onnx.json ] || curl -sSL "$b/en_US-amy-medium.onnx.json" -o amy.onnx.json
-python3 -m pip install --user --break-system-packages Pillow numpy
-echo "setup done."
+TOOLS="${VETT_TOOLS:-$HOME/tools}"
+mkdir -p "$TOOLS" && cd "$TOOLS"
+
+# ffmpeg / ffprobe (static)
+if [ ! -f ffmpeg ]; then
+  curl -sSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ff.tar.xz
+  tar xf ff.tar.xz
+  mv ffmpeg-*-static/ffmpeg ffmpeg-*-static/ffprobe .
+  rm -rf ffmpeg-*-static ff.tar.xz
+fi
+
+# Kokoro v1.0 model + voices (natural TTS)
+mkdir -p kokoro && cd kokoro
+KB="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
+[ -f kokoro.onnx ] || curl -sSL "$KB/kokoro-v1.0.onnx" -o kokoro.onnx
+[ -f voices.bin ]  || curl -sSL "$KB/voices-v1.0.bin"  -o voices.bin
+cd ..
+
+# python libs (user space, no root)
+python3 -m pip install --user --break-system-packages \
+  Pillow numpy onnxruntime kokoro-onnx soundfile \
+  google-api-python-client google-auth-httplib2 google-auth-oauthlib
+echo "setup done. tools in $TOOLS"

@@ -74,16 +74,31 @@ def build_scenes(s):
         ctext(d,940,"actually copy it?",font(66,mono=False,bold=True),INK2)
         if int(t*4)%2: ctext(d,1180,"?",font(180),INK3)
     scenes.append(("But here's what nobody shows you. What happens if you actually copy it?",s2))
-    # 3 REVEAL
-    def s3(img,d,t):
-        img.paste(BG,(0,0,W,H))
-        ctext(d,420,"AFTER REAL FEES",font(44,mono=True),INK3)
-        ctext(d,480,"+ SLIPPAGE, YOU GET:",font(44,mono=True),INK3)
-        d.rounded_rectangle([100,760,W-100,1080],40,fill=(28,16,15))
-        val=int(ease(min(t*1.4,1))*abs(s['copier_pnl']))
-        ctext(d,830,f"-${val:,.0f}",font(150,mono=True),RED)
-        ctext(d,1180,"YOU LOSE MONEY",font(60),RED)
-    scenes.append((f"You would lose {say_money(s['copier_pnl'])}.",s3))
+    # 3 REVEAL — two flavors: a real copier LOSS, or a MAKER you can't copy at all
+    tt=s.get('trap_type','loss')
+    if tt=='maker':
+        def s3(img,d,t):
+            img.paste(BG,(0,0,W,H))
+            ctext(d,420,"THE CATCH:",font(44,mono=True),INK3)
+            d.rounded_rectangle([100,620,W-100,940],40,fill=(28,16,15))
+            ctext(d,680,"YOU CAN'T",font(120,mono=True),RED)
+            ctext(d,820,"COPY THIS",font(120,mono=True),RED)
+            ctext(d,1040,f"{s['maker_pct']:.0f}% MARKET-MAKER FILLS",font(46,mono=True),INK2)
+            ctext(d,1180,"they earn the spread — you'd take",font(40,mono=False,bold=False),INK2)
+            ctext(d,1240,"the worse side of every trade",font(40,mono=False,bold=False),INK2)
+        scenes.append(("Here's the catch. This is a market maker. They earn the spread. "
+                       "Copy them by taking trades, and you get the worse side of every single fill. "
+                       "You literally can't replicate it.",s3))
+    else:
+        def s3(img,d,t):
+            img.paste(BG,(0,0,W,H))
+            ctext(d,420,"AFTER REAL FEES",font(44,mono=True),INK3)
+            ctext(d,480,"+ SLIPPAGE, YOU GET:",font(44,mono=True),INK3)
+            d.rounded_rectangle([100,760,W-100,1080],40,fill=(28,16,15))
+            val=int(ease(min(t*1.4,1))*abs(s['copier_pnl']))
+            ctext(d,830,f"-${val:,.0f}",font(150,mono=True),RED)
+            ctext(d,1180,"YOU LOSE MONEY",font(60),RED)
+        scenes.append((f"You would lose {say_money(s['copier_pnl'])}.",s3))
     # 4 WHY (flags)
     reasons=[]
     if s['maker_pct']>50: reasons.append(("Market maker","You can't copy their spread edge"))
@@ -167,6 +182,26 @@ def generate(out="output/short.mp4"):
         "-vf","format=yuv420p",out],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     shutil.rmtree(tmp,ignore_errors=True)
     total=sum(durs)
+    # sidecar metadata for the uploader (title/desc/tags built from real facts)
+    if s['kind']=='trap' and s.get('trap_type')=='maker':
+        title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])} — but you CAN'T copy it 🚩"
+        desc=(f"They advertise {money(s['raw_pnl'])} profit, but {s['maker_pct']:.0f}% of it is market-maker "
+              f"fills — they earn the spread. Copy them by taking and you get the worse side of every trade.\n\n"
+              f"Check any wallet free before you copy it → @vett_hl_bot on Telegram.\n\n"
+              f"#hyperliquid #crypto #copytrading #trading #defi")
+    elif s['kind']=='trap':
+        title=f"This Hyperliquid 'top trader' would LOSE you {money(s['copier_pnl']).lstrip('-')} 🚩"
+        desc=(f"They advertise {money(s['raw_pnl'])} profit at {s['win_rate']:.0f}% win rate. "
+              f"But copy them and after real fees + slippage you'd get {money(s['copier_pnl'])}.\n\n"
+              f"Check any wallet free before you copy it → @vett_hl_bot on Telegram.\n\n"
+              f"#hyperliquid #crypto #copytrading #trading #defi")
+    else:
+        title=f"A Hyperliquid wallet a copier could ACTUALLY follow (+{money(s['copier_pnl']).lstrip('+')}) ✅"
+        desc=(f"Most 'winners' would lose a copier money. This one passes every honesty check.\n\n"
+              f"Vet any wallet free → @vett_hl_bot on Telegram.\n\n#hyperliquid #crypto #copytrading")
+    meta=dict(kind=s['kind'],addr=s['addr'],title=title,description=desc,
+              tags=["hyperliquid","crypto","copytrading","trading","defi"])
+    json.dump(meta,open(os.path.join(os.path.dirname(out),"meta.json"),"w"))
     print(f"done -> {out}  ({total:.0f}s, {fi} frames)")
     return out
 
