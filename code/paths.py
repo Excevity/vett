@@ -9,7 +9,8 @@ PIPER_VOICE = os.path.join(TOOLS, "piper", "voices", "amy.onnx")
 KOKORO_MODEL  = os.environ.get("KOKORO_MODEL",  os.path.join(TOOLS, "kokoro", "kokoro.onnx"))
 KOKORO_VOICES = os.environ.get("KOKORO_VOICES", os.path.join(TOOLS, "kokoro", "voices.bin"))
 KOKORO_VOICE_CHOICES = ["am_michael", "am_adam", "am_onyx", "af_heart", "af_bella"]
-VOICE = os.environ.get("VETT_VOICE", "am_onyx")   # user's pick
+VOICE = os.environ.get("VETT_VOICE", "am_fenrir")   # natural male (swap to af_heart for most-natural overall)
+SPEED = float(os.environ.get("VETT_SPEED", "0.92"))  # 0.92 kills the robotic even-rhythm feel
 FONT_DIR = os.environ.get("FONT_DIR", "/usr/share/fonts/truetype/dejavu")
 
 # Story data: prefer explicit env, then this repo's own data/, then the local

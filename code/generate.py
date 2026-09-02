@@ -4,7 +4,7 @@ Numbers are templated straight from real scanner output — never invented."""
 import os,sys,json,subprocess,shutil,math,textwrap,random,urllib.request,urllib.parse
 from io import BytesIO
 sys.path.insert(0,os.path.dirname(__file__))
-from paths import FFMPEG,FFPROBE,FONT_DIR,KOKORO_MODEL,KOKORO_VOICES,VOICE,SCANNER_DATA
+from paths import FFMPEG,FFPROBE,FONT_DIR,KOKORO_MODEL,KOKORO_VOICES,VOICE,SPEED,SCANNER_DATA
 from PIL import Image,ImageDraw,ImageFont
 import story as story_mod
 
@@ -279,7 +279,7 @@ def _kok():
     return _KOKORO
 def tts(text,dest):
     import soundfile as sf
-    s,sr=_kok().create(text,voice=VOICE,speed=1.0,lang="en-us")
+    s,sr=_kok().create(text,voice=VOICE,speed=SPEED,lang="en-us")
     sf.write(dest,s,sr)
     return dest
 def dur(wav):
