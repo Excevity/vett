@@ -23,6 +23,9 @@ concurrency:
 jobs:
   post:
     runs-on: ubuntu-latest
+    env:
+      FFMPEG: ffmpeg      # use the apt-installed binaries (on PATH), not the static download
+      FFPROBE: ffprobe
     steps:
       - uses: actions/checkout@v4
 
@@ -30,8 +33,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fonts
-        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+      - name: System deps (fonts + ffmpeg from apt — reliable in CI)
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core ffmpeg
 
       - name: Cache toolchain (ffmpeg + Kokoro model ~340MB)
         uses: actions/cache@v4
