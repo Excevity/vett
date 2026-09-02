@@ -1,7 +1,7 @@
 """Vett content generator — turns a scanner story into a vertical data-driven short.
 Pure data visuals (no stock footage), Piper narration, burned captions.
 Numbers are templated straight from real scanner output — never invented."""
-import os,sys,json,subprocess,shutil,math,textwrap
+import os,sys,json,subprocess,shutil,math,textwrap,random
 sys.path.insert(0,os.path.dirname(__file__))
 from paths import FFMPEG,FFPROBE,FONT_DIR,KOKORO_MODEL,KOKORO_VOICES,VOICE
 from PIL import Image,ImageDraw,ImageFont
@@ -48,34 +48,65 @@ def ctext(d,y,txt,fnt,fill,center=True,x=W//2,anchor_m=True):
 def ease(t): return 1-(1-t)**3
 
 # ---------------- scene builders (each returns (narration, draw_fn)) ----------------
-def build_scenes(s):
-    trap = s['kind']=='trap'
-    scenes=[]
-    tag=f"{s['addr'][:6]}…{s['addr'][-4:]}"
+# Every video pulls its wording/labels/order from these pools so no two are the
+# same. rng is fresh per generation.
+def build_scenes(s, rng=None):
+    rng = rng or random.Random()
+    pick = lambda opts: rng.choice(opts)
+    tt = s.get('trap_type','loss')
+    tag = f"{s['addr'][:6]}…{s['addr'][-4:]}"
+    scenes = []
+
+    # ---- chosen visual labels (vary per video) ----
+    hook_sub  = pick(["'TOP TRADER'","WHALE WALLET","'GENIUS' TRADER","PRO TRADER","'SMART MONEY'"])
+    adv_label = pick(["ADVERTISES","ON PAPER","LEADERBOARD SAYS","THEY SHOW YOU"])
+    why_head  = pick(["WHY IT'S A TRAP","WHY YOU'D LOSE","THE RED FLAGS","WHAT THEY HIDE"])
+    cta_head  = pick([("CHECK ANY WALLET","BEFORE YOU COPY IT"),
+                      ("VET ANY WALLET","IN SECONDS, FREE"),
+                      ("KNOW THE TRUTH","BEFORE YOU COPY"),
+                      ("DON'T COPY BLIND","CHECK IT FIRST")])
+    cta_stat  = pick(["49% of 'winners' are traps.","Half of 'top' wallets lose copiers money.",
+                      "Most green wallets are traps.","The leaderboard lies. We don't."])
+
     # 1 HOOK
     def s1(img,d,t):
         img.paste(BG,(0,0,W,H))
         ctext(d,300,"HYPERLIQUID",font(46,mono=True),INK3)
-        ctext(d,370,"'TOP TRADER'",font(96),INK)
-        # green advertised card
+        ctext(d,370,hook_sub,font(96),INK)
         d.rounded_rectangle([120,640,W-120,1080],36,fill=PANEL)
-        ctext(d,700,"ADVERTISES",font(40,mono=True),INK2)
+        ctext(d,700,adv_label,font(40,mono=True),INK2)
         a=int(ease(min(t*1.6,1))*s['raw_pnl'])
         ctext(d,780,money(a),font(150,mono=True),GREEN)
         ctext(d,980,f"{s['win_rate']:.0f}% WIN RATE",font(48,mono=True),INK2)
         ctext(d,1300,tag,font(40,mono=True),INK3)
-    scenes.append((f"This wallet is a top trader on Hyperliquid.",s1))
-    scenes.append((f"It advertises {say_money(s['raw_pnl'])} in profit, with a {s['win_rate']:.0f} percent win rate.",s1))
+    scenes.append((pick([
+        "This wallet is a top trader on Hyperliquid.",
+        "Here's one of Hyperliquid's top traders.",
+        "This wallet looks like a genius on Hyperliquid.",
+        "Everybody wants to copy this Hyperliquid wallet.",
+        "This trader is supposedly crushing it on Hyperliquid."]), s1))
+    scenes.append((pick([
+        f"It advertises {say_money(s['raw_pnl'])} in profit, with a {s['win_rate']:.0f} percent win rate.",
+        f"On paper it's up {say_money(s['raw_pnl'])}, winning {s['win_rate']:.0f} percent of the time.",
+        f"The leaderboard shows {say_money(s['raw_pnl'])} in profit and a {s['win_rate']:.0f} percent win rate.",
+        f"It's showing {say_money(s['raw_pnl'])} in gains, with {s['win_rate']:.0f} percent of trades green."]), s1))
+
     # 2 TURN
+    turn_top = pick(["but what happens if","but watch what happens when","now here's the catch —"])
+    turn_bot = pick(["actually copy it?","actually try to copy it?","copy this wallet?"])
     def s2(img,d,t):
         img.paste(BG,(0,0,W,H))
-        ctext(d,560,"but what happens if",font(66,mono=False,bold=True),INK2)
-        ctext(d,720,"YOU",font(150),TEAL)
-        ctext(d,940,"actually copy it?",font(66,mono=False,bold=True),INK2)
+        ctext(d,560,turn_top,font(60,mono=False,bold=True),INK2)
+        ctext(d,700,"YOU",font(150),TEAL)
+        ctext(d,920,turn_bot,font(60,mono=False,bold=True),INK2)
         if int(t*4)%2: ctext(d,1180,"?",font(180),INK3)
-    scenes.append(("But here's what nobody shows you. What happens if you actually copy it?",s2))
-    # 3 REVEAL — two flavors: a real copier LOSS, or a MAKER you can't copy at all
-    tt=s.get('trap_type','loss')
+    scenes.append((pick([
+        "But here's what nobody shows you. What happens if you actually copy it?",
+        "But here's the part the apps hide. What if you actually copied it?",
+        "Now here's what they won't tell you. What happens the moment you copy it?",
+        "But watch what happens the second you try to copy this wallet."]), s2))
+
+    # 3 REVEAL — copier LOSS, or a MAKER you can't copy at all
     if tt=='maker':
         def s3(img,d,t):
             img.paste(BG,(0,0,W,H))
@@ -86,9 +117,11 @@ def build_scenes(s):
             ctext(d,1040,f"{s['maker_pct']:.0f}% MARKET-MAKER FILLS",font(46,mono=True),INK2)
             ctext(d,1180,"they earn the spread — you'd take",font(40,mono=False,bold=False),INK2)
             ctext(d,1240,"the worse side of every trade",font(40,mono=False,bold=False),INK2)
-        scenes.append(("Here's the catch. This is a market maker. They earn the spread. "
-                       "Copy them by taking trades, and you get the worse side of every single fill. "
-                       "You literally can't replicate it.",s3))
+        scenes.append((pick([
+            "Here's the catch. This is a market maker. They earn the spread. Copy them by taking trades, "
+            "and you get the worse side of every single fill. You literally can't replicate it.",
+            "Turns out it's a market maker. Their profit comes from the spread — something a copier taking "
+            "trades can never capture. You'd be on the wrong side of every fill."]), s3))
     else:
         def s3(img,d,t):
             img.paste(BG,(0,0,W,H))
@@ -97,18 +130,24 @@ def build_scenes(s):
             d.rounded_rectangle([100,760,W-100,1080],40,fill=(28,16,15))
             val=int(ease(min(t*1.4,1))*abs(s['copier_pnl']))
             ctext(d,830,f"-${val:,.0f}",font(150,mono=True),RED)
-            ctext(d,1180,"YOU LOSE MONEY",font(60),RED)
-        scenes.append((f"You would lose {say_money(s['copier_pnl'])}.",s3))
-    # 4 WHY (flags)
+            ctext(d,1180,pick(["YOU LOSE MONEY","YOU'RE IN THE RED","A COPIER LOSES"]),font(60),RED)
+        scenes.append((pick([
+            f"You would lose {say_money(s['copier_pnl'])}.",
+            f"You'd actually lose {say_money(s['copier_pnl'])}.",
+            f"A copier ends up down {say_money(s['copier_pnl'])}.",
+            f"After the real costs, you lose {say_money(s['copier_pnl'])}."]), s3))
+
+    # 4 WHY (flags) — shuffled order per video
     reasons=[]
     if s['maker_pct']>50: reasons.append(("Market maker","You can't copy their spread edge"))
-    if s['top5_share']>80: reasons.append((f"{s['top5_share']:.0f}% luck",f"Nearly all profit from 5 trades"))
+    if s['top5_share']>80: reasons.append((f"{s['top5_share']:.0f}% luck","Nearly all profit from 5 trades"))
     reasons.append(("Fees > edge","Their volume eats the profit"))
     if s['span_days']<20: reasons.append((f"Only {s['span_days']:.0f} days","Too new to trust"))
+    rng.shuffle(reasons)
     reasons=reasons[:3]
     def s4(img,d,t):
         img.paste(BG,(0,0,W,H))
-        ctext(d,340,"WHY IT'S A TRAP",font(60),INK)
+        ctext(d,340,why_head,font(60),INK)
         y=620
         shown=int(t*len(reasons))+1
         for i,(a,b) in enumerate(reasons):
@@ -117,18 +156,27 @@ def build_scenes(s):
             ctext(d,y+40,a,font(64),RED,center=False,x=170)
             ctext(d,y+140,b,font(40,mono=False,bold=False),INK2,center=False,x=170)
             y+=280
-    scenes.append(("Fees eat the edge, and almost all their profit came from a handful of lucky trades.",s4))
-    # 5 CTA
+    scenes.append((pick([
+        "Fees eat the edge, and almost all their profit came from a handful of lucky trades.",
+        "The fees burn the edge, and most of the wins were just a few lucky trades you'd never catch.",
+        "Their volume eats the profit, and the gains came from trades a copier can't replicate."]), s4))
+
+    # 5 CTA — always shows BOTH the @ handle and the t.me link
     def s5(img,d,t):
         img.paste(BG,(0,0,W,H))
-        ctext(d,560,"CHECK ANY WALLET",font(72),INK)
-        ctext(d,660,"BEFORE YOU COPY IT",font(72),INK)
-        d.rounded_rectangle([160,900,W-160,1080],40,fill=(15,42,34))
-        ctext(d,940,"@vett_hl_bot",font(80,mono=True),TEAL)
-        ctext(d,1160,"free on telegram",font(46,mono=True),INK2)
-        ctext(d,1500,"49% of 'winners' are traps.",font(44),INK3)
+        ctext(d,470,cta_head[0],font(72),INK)
+        ctext(d,570,cta_head[1],font(72),INK)
+        d.rounded_rectangle([150,740,W-150,1010],40,fill=(15,42,34))
+        ctext(d,790,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,910,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        ctext(d,1080,"free · no login · instant",font(44,mono=True),INK3)
+        ctext(d,1500,cta_stat,font(44),INK3)
         ctext(d,1560,"don't be the one who finds out.",font(44),INK3)
-    scenes.append(("Check any wallet for free, before you copy it. Vett, on Telegram.",s5))
+    scenes.append((pick([
+        "Check any wallet for free, before you copy it. Vett, on Telegram.",
+        "Vet any wallet in seconds, free. Find Vett on Telegram.",
+        "Don't copy blind. Check any wallet free with Vett on Telegram.",
+        "Know before you copy. Vett is free on Telegram."]), s5))
     return scenes
 
 # ---------------- TTS (Kokoro, natural voice) ----------------
@@ -183,24 +231,24 @@ def generate(out="output/short.mp4"):
     shutil.rmtree(tmp,ignore_errors=True)
     total=sum(durs)
     # sidecar metadata for the uploader (title/desc/tags built from real facts)
+    HASHTAGS="#vett #trading #crypto #hyperliquid #bitcoin"
+    CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
     if s['kind']=='trap' and s.get('trap_type')=='maker':
         title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])} — but you CAN'T copy it 🚩"
         desc=(f"They advertise {money(s['raw_pnl'])} profit, but {s['maker_pct']:.0f}% of it is market-maker "
               f"fills — they earn the spread. Copy them by taking and you get the worse side of every trade.\n\n"
-              f"Check any wallet free before you copy it → @vett_hl_bot on Telegram.\n\n"
-              f"#hyperliquid #crypto #copytrading #trading #defi")
+              f"{CTA_LINE}\n\n{HASHTAGS}")
     elif s['kind']=='trap':
         title=f"This Hyperliquid 'top trader' would LOSE you {money(s['copier_pnl']).lstrip('-')} 🚩"
         desc=(f"They advertise {money(s['raw_pnl'])} profit at {s['win_rate']:.0f}% win rate. "
               f"But copy them and after real fees + slippage you'd get {money(s['copier_pnl'])}.\n\n"
-              f"Check any wallet free before you copy it → @vett_hl_bot on Telegram.\n\n"
-              f"#hyperliquid #crypto #copytrading #trading #defi")
+              f"{CTA_LINE}\n\n{HASHTAGS}")
     else:
         title=f"A Hyperliquid wallet a copier could ACTUALLY follow (+{money(s['copier_pnl']).lstrip('+')}) ✅"
         desc=(f"Most 'winners' would lose a copier money. This one passes every honesty check.\n\n"
-              f"Vet any wallet free → @vett_hl_bot on Telegram.\n\n#hyperliquid #crypto #copytrading")
+              f"Vet any wallet free → @vett_hl_bot on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
     meta=dict(kind=s['kind'],addr=s['addr'],title=title,description=desc,
-              tags=["hyperliquid","crypto","copytrading","trading","defi"])
+              tags=["vett","trading","crypto","hyperliquid","bitcoin"])
     json.dump(meta,open(os.path.join(os.path.dirname(out),"meta.json"),"w"))
     print(f"done -> {out}  ({total:.0f}s, {fi} frames)")
     return out
