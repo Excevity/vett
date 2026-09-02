@@ -127,14 +127,16 @@ def _wrap(d, text, fnt, maxw):
             cur=w
     if cur: lines.append(cur)
     return lines
-def draw_caption(img,d,text,t=1.0):
-    """Dynamic captions: white fill + teal outline, words popping in one by one."""
+def draw_caption(img,d,text,t=1.0,speech_frac=1.0):
+    """Dynamic captions: white fill + teal outline, words popping in paced to the
+    actual spoken audio (reveal finishes right when the narration ends)."""
     if not (CAPTIONS and text): return
     fnt=font(48,mono=False,bold=True)
     lines=_wrap(d,text,fnt,W-180)[:3]
     words=[ln.split() for ln in lines]
     total=sum(len(w) for w in words) or 1
-    shown=total if t>=0.5 else max(1,int((t/0.5)*total)+1)   # all revealed by mid-scene
+    sf=max(speech_frac,0.05)
+    shown=total if t>=sf else max(1,int((t/sf)*total)+1)     # tracks the speech pace
     lh=66; total_h=lh*len(lines); y0=1850-total_h
     d.rectangle([0,y0-30,W,1898],fill=(6,8,11))              # subtle band for contrast
     idx=0; yy=y0
@@ -427,9 +429,11 @@ def truth_template(rng):
 
 def render_and_write(scenes, out):
     tmp="output/_tmp"; shutil.rmtree(tmp,ignore_errors=True); os.makedirs(tmp)
-    durs=[]
+    durs=[]; sfr=[]
     for i,(narr,_) in enumerate(scenes):
-        tts(narr,f"{tmp}/a{i}.wav"); durs.append(max(dur(f"{tmp}/a{i}.wav"),1.2)+0.35)
+        tts(narr,f"{tmp}/a{i}.wav")
+        nd=dur(f"{tmp}/a{i}.wav"); sd=max(nd,1.2)+0.35
+        durs.append(sd); sfr.append(min(1.0, nd/sd) if sd else 1.0)   # speech fraction of scene
     fi=0
     for i,(narr,draw_fn) in enumerate(scenes):
         n=max(1,int(round(durs[i]*FPS)))
@@ -437,7 +441,7 @@ def render_and_write(scenes, out):
             img=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(img)
             prog=k/max(1,n-1)
             draw_fn(img,d,prog)
-            draw_caption(img,d,narr,prog)        # dynamic captions (word-by-word, white+teal outline)
+            draw_caption(img,d,narr,prog,sfr[i])  # captions paced to the spoken audio
             img.save(f"{tmp}/f{fi:05d}.png"); fi+=1
     with open(f"{tmp}/alist.txt","w") as f:
         for i in range(len(scenes)):
