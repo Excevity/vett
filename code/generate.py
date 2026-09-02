@@ -1,9 +1,10 @@
 """Vett content generator — turns a scanner story into a vertical data-driven short.
 Pure data visuals (no stock footage), Piper narration, burned captions.
 Numbers are templated straight from real scanner output — never invented."""
-import os,sys,json,subprocess,shutil,math,textwrap,random
+import os,sys,json,subprocess,shutil,math,textwrap,random,urllib.request,urllib.parse
+from io import BytesIO
 sys.path.insert(0,os.path.dirname(__file__))
-from paths import FFMPEG,FFPROBE,FONT_DIR,KOKORO_MODEL,KOKORO_VOICES,VOICE
+from paths import FFMPEG,FFPROBE,FONT_DIR,KOKORO_MODEL,KOKORO_VOICES,VOICE,SCANNER_DATA
 from PIL import Image,ImageDraw,ImageFont
 import story as story_mod
 
@@ -47,6 +48,53 @@ def ctext(d,y,txt,fnt,fill,center=True,x=W//2,anchor_m=True):
     return h
 def ease(t): return 1-(1-t)**3
 
+# ---- optional photo background (Pexels, free + commercial-use). OFF unless PEXELS_KEY is set. ----
+_BGIMG = None
+def bg(img):
+    """Fill a frame: darkened photo if one was fetched, else the solid brand BG."""
+    if _BGIMG is not None: img.paste(_BGIMG, (0, 0))
+    else: img.paste(BG, (0, 0, W, H))
+def _cover(im):
+    iw, ih = im.size; scale = max(W/iw, H/ih)
+    im = im.resize((int(iw*scale), int(ih*scale)))
+    x = (im.size[0]-W)//2; y = (im.size[1]-H)//2
+    return im.crop((x, y, x+W, y+H))
+def fetch_bg(query):
+    key = os.environ.get("PEXELS_KEY")
+    if not key: return None
+    try:
+        u = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(query)}&per_page=20&orientation=portrait"
+        r = json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"Authorization": key}), timeout=20))
+        photos = r.get("photos", [])
+        if not photos: return None
+        src = random.choice(photos)["src"]
+        raw = urllib.request.urlopen(src.get("portrait") or src["large"], timeout=20).read()
+        im = _cover(Image.open(BytesIO(raw)).convert("RGB"))
+        return Image.eval(im, lambda p: int(p*0.22))   # darken heavily so data stays readable
+    except Exception:
+        return None
+
+CAPTIONS = True   # burn narration subtitles at the bottom (retention on silent autoplay)
+def _wrap(d, text, fnt, maxw):
+    words=text.split(); lines=[]; cur=""
+    for w in words:
+        test=(cur+" "+w).strip()
+        if d.textlength(test,font=fnt)<=maxw: cur=test
+        else:
+            if cur: lines.append(cur)
+            cur=w
+    if cur: lines.append(cur)
+    return lines
+def draw_caption(img,d,text):
+    if not (CAPTIONS and text): return
+    fnt=font(44,mono=False,bold=True)
+    lines=_wrap(d,text,fnt,W-160)[:3]
+    lh=60; total=lh*len(lines); y0=1858-total
+    d.rectangle([0,y0-26,W,1892],fill=(6,8,11))   # subtle dark band
+    yy=y0
+    for ln in lines:
+        ctext(d,yy,ln,fnt,INK); yy+=lh
+
 # ---------------- scene builders (each returns (narration, draw_fn)) ----------------
 # Every video pulls its wording/labels/order from these pools so no two are the
 # same. rng is fresh per generation.
@@ -70,7 +118,7 @@ def build_scenes(s, rng=None):
 
     # 1 HOOK
     def s1(img,d,t):
-        img.paste(BG,(0,0,W,H))
+        bg(img)
         ctext(d,300,"HYPERLIQUID",font(46,mono=True),INK3)
         ctext(d,370,hook_sub,font(96),INK)
         d.rounded_rectangle([120,640,W-120,1080],36,fill=PANEL)
@@ -95,7 +143,7 @@ def build_scenes(s, rng=None):
     turn_top = pick(["but what happens if","but watch what happens when","now here's the catch —"])
     turn_bot = pick(["actually copy it?","actually try to copy it?","copy this wallet?"])
     def s2(img,d,t):
-        img.paste(BG,(0,0,W,H))
+        bg(img)
         ctext(d,560,turn_top,font(60,mono=False,bold=True),INK2)
         ctext(d,700,"YOU",font(150),TEAL)
         ctext(d,920,turn_bot,font(60,mono=False,bold=True),INK2)
@@ -109,7 +157,7 @@ def build_scenes(s, rng=None):
     # 3 REVEAL — copier LOSS, or a MAKER you can't copy at all
     if tt=='maker':
         def s3(img,d,t):
-            img.paste(BG,(0,0,W,H))
+            bg(img)
             ctext(d,420,"THE CATCH:",font(44,mono=True),INK3)
             d.rounded_rectangle([100,620,W-100,940],40,fill=(28,16,15))
             ctext(d,680,"YOU CAN'T",font(120,mono=True),RED)
@@ -124,7 +172,7 @@ def build_scenes(s, rng=None):
             "trades can never capture. You'd be on the wrong side of every fill."]), s3))
     else:
         def s3(img,d,t):
-            img.paste(BG,(0,0,W,H))
+            bg(img)
             ctext(d,420,"AFTER REAL FEES",font(44,mono=True),INK3)
             ctext(d,480,"+ SLIPPAGE, YOU GET:",font(44,mono=True),INK3)
             d.rounded_rectangle([100,760,W-100,1080],40,fill=(28,16,15))
@@ -146,7 +194,7 @@ def build_scenes(s, rng=None):
     rng.shuffle(reasons)
     reasons=reasons[:3]
     def s4(img,d,t):
-        img.paste(BG,(0,0,W,H))
+        bg(img)
         ctext(d,340,why_head,font(60),INK)
         y=620
         shown=int(t*len(reasons))+1
@@ -163,7 +211,7 @@ def build_scenes(s, rng=None):
 
     # 5 CTA — always shows BOTH the @ handle and the t.me link
     def s5(img,d,t):
-        img.paste(BG,(0,0,W,H))
+        bg(img)
         ctext(d,470,cta_head[0],font(72),INK)
         ctext(d,570,cta_head[1],font(72),INK)
         d.rounded_rectangle([150,740,W-150,1010],40,fill=(15,42,34))
@@ -197,25 +245,143 @@ def dur(wav):
         capture_output=True,text=True)
     return float(r.stdout.strip())
 
-def generate(out="output/short.mp4"):
+HASHTAGS="#vett #trading #crypto #hyperliquid #bitcoin"
+VETT_TAGS=["vett","trading","crypto","hyperliquid","bitcoin"]
+CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
+
+def _scan():
+    try: return json.load(open(SCANNER_DATA))
+    except Exception: return []
+
+# ---- alternate template: TOP 3 copyable wallets ----
+def top3_scenes(rows, rng):
+    pick=lambda o: rng.choice(o); scenes=[]
+    def title_scene(img,d,t):
+        bg(img)
+        ctext(d,360,"HYPERLIQUID",font(46,mono=True),INK3)
+        ctext(d,430,"3 WALLETS YOU CAN",font(80),INK)
+        ctext(d,540,"ACTUALLY COPY",font(80),GREEN)
+        ctext(d,760,"(after real fees + slippage)",font(44,mono=True),INK2)
+    scenes.append((pick([
+        "Most Hyperliquid 'winners' would lose you money. But not these three.",
+        "I checked the whole leaderboard. These three actually survive copying."]), title_scene))
+    for idx,a in enumerate(rows,1):
+        def card(img,d,t,a=a,idx=idx):
+            bg(img)
+            ctext(d,280,f"#{idx}",font(120),TEAL)
+            d.rounded_rectangle([120,500,W-120,1040],36,fill=PANEL)
+            ctext(d,560,"A COPIER REALLY GETS",font(38,mono=True),INK2)
+            val=int(ease(min(t*1.6,1))*a['copier_pnl'])
+            ctext(d,630,f"+${val:,.0f}",font(120,mono=True),GREEN)
+            ctext(d,840,f"{a['maker_pct']:.0f}% maker · {a['coins']} coins · {a['span_days']:.0f} days",font(38,mono=True),INK2)
+            ctext(d,1160,f"{a['addr'][:6]}…{a['addr'][-4:]}",font(40,mono=True),INK3)
+        scenes.append((pick([
+            f"Number {idx}. A copier nets {say_money(a['copier_pnl'])}, and it holds up even when you drop the luckiest trades.",
+            f"Number {idx}. After every real cost, you'd still make {say_money(a['copier_pnl'])}."]), card))
+    def cta(img,d,t):
+        bg(img)
+        ctext(d,540,"CHECK ANY WALLET",font(72),INK)
+        ctext(d,640,"BEFORE YOU COPY",font(72),INK)
+        d.rounded_rectangle([150,780,W-150,1050],40,fill=(15,42,34))
+        ctext(d,830,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,950,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+    scenes.append((pick([
+        "Want the full list? Check any wallet free with Vett on Telegram.",
+        "Vet any wallet yourself, free. Vett, on Telegram."]), cta))
+    return scenes
+
+# ---- alternate template: LEADERBOARD TRUTH-CHECK ----
+def truth_scenes(n, pct, rng):
+    pick=lambda o: rng.choice(o); scenes=[]
+    def s1(img,d,t):
+        bg(img)
+        ctext(d,420,"I CHECKED",font(70),INK2)
+        ctext(d,540,f"{int(ease(min(t*1.6,1))*n)}",font(220,mono=True),INK)
+        ctext(d,820,"HYPERLIQUID 'TOP' WALLETS",font(46,mono=True),INK2)
+    scenes.append((pick([
+        f"I ran every one of Hyperliquid's top {n} wallets through Vett.",
+        f"I checked {n} of the best-looking wallets on Hyperliquid."]), s1))
+    def s2(img,d,t):
+        bg(img)
+        d.rounded_rectangle([100,600,W-100,980],40,fill=(28,16,15))
+        ctext(d,660,f"{int(ease(min(t*1.5,1))*pct)}%",font(200,mono=True),RED)
+        ctext(d,920,"WOULD LOSE A COPIER MONEY",font(44,mono=True),INK2)
+    scenes.append((pick([
+        f"{pct:.0f} percent of them would actually lose you money if you copied them.",
+        f"{pct:.0f} percent are traps. You'd lose money copying them."]), s2))
+    def s3(img,d,t):
+        bg(img)
+        ctext(d,400,"WHY?",font(90),INK)
+        for i,(a,b) in enumerate([("Taker fees","you cross the spread, they don't"),
+                                  ("Slippage","you enter later and worse"),
+                                  ("Luck","a few trades you can't catch")]):
+            y=600+i*230
+            d.rounded_rectangle([110,y,W-110,y+200],28,fill=PANEL)
+            ctext(d,y+40,a,font(58),RED,center=False,x=170)
+            ctext(d,y+118,b,font(38,mono=False,bold=False),INK2,center=False,x=170)
+    scenes.append((pick([
+        "Fees, slippage, and luck. The advertised number is never what a copier gets.",
+        "Real fees, worse fills, and lucky trades you could never catch."]), s3))
+    def cta(img,d,t):
+        bg(img)
+        ctext(d,560,"KNOW BEFORE",font(76),INK)
+        ctext(d,660,"YOU COPY",font(76),INK)
+        d.rounded_rectangle([150,820,W-150,1090],40,fill=(15,42,34))
+        ctext(d,870,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,990,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+    scenes.append((pick([
+        "Check any wallet free before you copy it. Vett, on Telegram.",
+        "Don't be the one who finds out the hard way. Vett, free on Telegram."]), cta))
+    return scenes
+
+# ---- template dispatchers: each returns (scenes, meta, label) or None ----
+def trap_template(rng):
     s=story_mod.pick()
-    if not s: print("no story available"); return None
-    print(f"story: {s['kind']} {s['addr'][:10]} adv {money(s['raw_pnl'])} copier {money(s['copier_pnl'])}")
-    scenes=build_scenes(s)
+    if not s: return None
+    scenes=build_scenes(s,rng)
+    if s.get('trap_type')=='maker':
+        title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])} — but you CAN'T copy it 🚩"
+        desc=(f"They advertise {money(s['raw_pnl'])} profit, but {s['maker_pct']:.0f}% is market-maker fills. "
+              f"Copy them by taking and you get the worse side of every trade.\n\n{CTA_LINE}\n\n{HASHTAGS}")
+    else:
+        title=f"This Hyperliquid 'top trader' would LOSE you {money(s['copier_pnl']).lstrip('-')} 🚩"
+        desc=(f"They advertise {money(s['raw_pnl'])} at {s['win_rate']:.0f}% win rate. Copy them and after "
+              f"real fees + slippage you'd get {money(s['copier_pnl'])}.\n\n{CTA_LINE}\n\n{HASHTAGS}")
+    return scenes, dict(kind='trap',addr=s['addr'],title=title,description=desc,tags=VETT_TAGS), f"trap {s['addr'][:10]}"
+
+def top3_template(rng):
+    good=[a for a in _scan() if a.get('final_verdict')=='COPYABLE' and a.get('copier_pnl',0)>0]
+    good.sort(key=lambda a:-a.get('score',0))
+    if len(good)<3: return None
+    rows=good[:3]
+    title="3 Hyperliquid wallets a copier could ACTUALLY follow ✅"
+    desc=("Most 'winners' would lose a copier money — these three pass every honesty check "
+          f"(real fees, slippage, no maker rebate, luck test).\n\nVet any wallet free → @vett_hl_bot "
+          f"on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
+    return top3_scenes(rows,rng), dict(kind='top3',addr=rows[0]['addr'],title=title,description=desc,tags=VETT_TAGS), "top3"
+
+def truth_template(rng):
+    d=_scan(); n=len(d)
+    if n<20: return None
+    pct=100*sum(1 for a in d if a.get('final_verdict')=='DO NOT COPY')/n
+    title=f"I checked {n} Hyperliquid 'top' wallets — {pct:.0f}% would lose you money 🚩"
+    desc=(f"{pct:.0f}% of the leaderboard's 'winners' would lose a copier money after real fees, "
+          f"slippage and luck.\n\n{CTA_LINE}\n\n{HASHTAGS}")
+    return truth_scenes(n,pct,rng), dict(kind='truth',addr='',title=title,description=desc,tags=VETT_TAGS), "truthcheck"
+
+def render_and_write(scenes, out):
     tmp="output/_tmp"; shutil.rmtree(tmp,ignore_errors=True); os.makedirs(tmp)
-    # 1) TTS each scene, measure durations
     durs=[]
     for i,(narr,_) in enumerate(scenes):
         tts(narr,f"{tmp}/a{i}.wav"); durs.append(max(dur(f"{tmp}/a{i}.wav"),1.2)+0.35)
-    # 2) render frames
     fi=0
     for i,(narr,draw_fn) in enumerate(scenes):
         n=max(1,int(round(durs[i]*FPS)))
         for k in range(n):
             img=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(img)
             draw_fn(img,d,k/max(1,n-1))
+            draw_caption(img,d,narr)            # burned subtitles
             img.save(f"{tmp}/f{fi:05d}.png"); fi+=1
-    # 3) concat audio (pad each to its scene length)
     with open(f"{tmp}/alist.txt","w") as f:
         for i in range(len(scenes)):
             subprocess.run([FFMPEG,"-y","-i",f"{tmp}/a{i}.wav","-af",
@@ -224,32 +390,34 @@ def generate(out="output/short.mp4"):
             f.write(f"file 'p{i}.wav'\n")
     subprocess.run([FFMPEG,"-y","-f","concat","-safe","0","-i",f"{tmp}/alist.txt","-c","copy",
         f"{tmp}/audio.wav"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    # 4) encode video + mux
     subprocess.run([FFMPEG,"-y","-framerate",str(FPS),"-i",f"{tmp}/f%05d.png","-i",f"{tmp}/audio.wav",
         "-c:v","libx264","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-shortest",
         "-vf","format=yuv420p",out],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     shutil.rmtree(tmp,ignore_errors=True)
-    total=sum(durs)
-    # sidecar metadata for the uploader (title/desc/tags built from real facts)
-    HASHTAGS="#vett #trading #crypto #hyperliquid #bitcoin"
-    CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
-    if s['kind']=='trap' and s.get('trap_type')=='maker':
-        title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])} — but you CAN'T copy it 🚩"
-        desc=(f"They advertise {money(s['raw_pnl'])} profit, but {s['maker_pct']:.0f}% of it is market-maker "
-              f"fills — they earn the spread. Copy them by taking and you get the worse side of every trade.\n\n"
-              f"{CTA_LINE}\n\n{HASHTAGS}")
-    elif s['kind']=='trap':
-        title=f"This Hyperliquid 'top trader' would LOSE you {money(s['copier_pnl']).lstrip('-')} 🚩"
-        desc=(f"They advertise {money(s['raw_pnl'])} profit at {s['win_rate']:.0f}% win rate. "
-              f"But copy them and after real fees + slippage you'd get {money(s['copier_pnl'])}.\n\n"
-              f"{CTA_LINE}\n\n{HASHTAGS}")
-    else:
-        title=f"A Hyperliquid wallet a copier could ACTUALLY follow (+{money(s['copier_pnl']).lstrip('+')}) ✅"
-        desc=(f"Most 'winners' would lose a copier money. This one passes every honesty check.\n\n"
-              f"Vet any wallet free → @vett_hl_bot on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
-    meta=dict(kind=s['kind'],addr=s['addr'],title=title,description=desc,
-              tags=["vett","trading","crypto","hyperliquid","bitcoin"])
-    json.dump(meta,open(os.path.join(os.path.dirname(out),"meta.json"),"w"))
+    return sum(durs), fi
+
+def generate(out="output/short.mp4"):
+    rng=random.Random()
+    # trap is the core; top3 and truth add variety. Weighted, with fallback.
+    order=[trap_template, trap_template, top3_template, truth_template]
+    rng.shuffle(order)
+    res=None
+    for tf in order:
+        res=tf(rng)
+        if res: break
+    if not res: res=trap_template(rng)
+    if not res: print("no story available"); return None
+    scenes, meta, label = res
+    print(f"template: {label}")
+    # optional darkened photo backdrop (only if PEXELS_KEY is set)
+    global _BGIMG
+    q = {"top3":"green finance chart","truth":"stock market data screen"}.get(
+        meta.get("kind"), "cryptocurrency trading dark")
+    _BGIMG = fetch_bg(q)
+    if _BGIMG is not None: print(f"  photo backdrop: on ({q})")
+    total, fi = render_and_write(scenes, out)
+    _BGIMG = None
+    json.dump(meta, open(os.path.join(os.path.dirname(out),"meta.json"),"w"))
     print(f"done -> {out}  ({total:.0f}s, {fi} frames)")
     return out
 
