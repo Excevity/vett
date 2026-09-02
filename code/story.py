@@ -6,6 +6,7 @@ STATE=os.path.join(os.path.dirname(__file__),'..','state','used.json')
 def _used():
     return set(json.load(open(STATE))) if os.path.exists(STATE) else set()
 def _mark(k):
+    os.makedirs(os.path.dirname(STATE),exist_ok=True)   # state/ is gitignored; create it in CI
     u=_used(); u.add(k); json.dump(sorted(u),open(STATE,'w'))
 def pick():
     d=json.load(open(SCANNER_DATA))
