@@ -427,6 +427,106 @@ def truth_template(rng):
           f"slippage and luck.\n\n{CTA_LINE}\n\n{HASHTAGS}")
     return truth_scenes(n,pct,rng), dict(kind='truth',addr='',title=title,description=desc,tags=VETT_TAGS), "truthcheck"
 
+# ---- alternate template: SPOTLIGHT a genuinely copyable wallet (positive tone) ----
+def spotlight_scenes(a, rng):
+    pick=lambda o: rng.choice(o); scenes=[]
+    tag=f"{a['addr'][:6]}…{a['addr'][-4:]}"
+    def s1(img,d,t):
+        bg(img)
+        ctext(d,360,"HYPERLIQUID",font(46,mono=True),INK3)
+        ctext(d,430,"A WALLET YOU CAN",font(80),INK)
+        ctext(d,540,"ACTUALLY COPY",font(80),GREEN)
+        ctext(d,760,"(rare — most can't be)",font(44,mono=True),INK2)
+    scenes.append((pick([
+        "Almost every 'top' Hyperliquid wallet is a trap. This one isn't.",
+        "I check the leaderboard every day. Genuinely copyable wallets are rare — here's one."]), s1))
+    def s2(img,d,t):
+        bg(img)
+        ctext(d,300,"✅ COPYABLE",font(88),GREEN)
+        d.rounded_rectangle([120,520,W-120,1050],36,fill=PANEL)
+        ctext(d,580,"A COPIER REALLY GETS",font(38,mono=True),INK2)
+        val=int(ease(min(t*1.6,1))*a['copier_pnl'])
+        ctext(d,650,f"+${val:,.0f}",font(120,mono=True),GREEN)
+        ctext(d,860,f"{a['maker_pct']:.0f}% maker · {a['coins']} coins · {a['span_days']:.0f} days",font(38,mono=True),INK2)
+        ctext(d,1180,tag,font(40,mono=True),INK3)
+    scenes.append((pick([
+        f"After real fees and slippage, a copier still nets {say_money(a['copier_pnl'])}.",
+        f"Even paying every real cost, you'd make {say_money(a['copier_pnl'])} copying this one."]), s2))
+    def s3(img,d,t):
+        bg(img)
+        ctext(d,340,"WHY IT PASSES",font(60),INK)
+        for i,(x,y) in enumerate([("Takes, not makes","you can replicate its fills"),
+                                  ("Not luck","edge survives dropping its best trades"),
+                                  ("Beats the fees","real profit after every cost")]):
+            yy=620+i*230
+            d.rounded_rectangle([110,yy,W-110,yy+200],28,fill=PANEL)
+            ctext(d,yy+40,x,font(56),GREEN,center=False,x=170)
+            ctext(d,yy+118,y,font(36,mono=False,bold=False),INK2,center=False,x=170)
+    scenes.append((pick([
+        "It takes trades you can actually copy, the edge survives a luck check, and it beats the fees.",
+        "You can replicate its fills, the profit isn't a few lucky trades, and it clears every cost."]), s3))
+    def s4(img,d,t):
+        bg(img)
+        ctext(d,470,"FIND THEM YOURSELF",font(66),INK)
+        ctext(d,560,"BEFORE YOU COPY",font(66),INK)
+        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
+        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+    scenes.append((pick([
+        "Vett finds the rare copyable ones for you, free, on Telegram.",
+        "Don't guess. Vett surfaces the real ones — free on Telegram."]), s4))
+    return scenes
+
+# ---- alternate template: EDUCATIONAL "3 signs a wallet will lose you money" ----
+def signs_scenes(rng):
+    pick=lambda o: rng.choice(o); scenes=[]
+    def s1(img,d,t):
+        bg(img)
+        ctext(d,420,"3 SIGNS A WALLET",font(80),INK)
+        ctext(d,530,"WILL LOSE YOU MONEY",font(66),RED)
+        ctext(d,760,"before you copy it",font(46,mono=True),INK2)
+    scenes.append((pick([
+        "Three signs a Hyperliquid wallet will lose you money, even though it looks green.",
+        "Before you copy any wallet, check for these three red flags."]), s1))
+    signs=[("1. It's a market maker","You can't copy the spread edge"),
+           ("2. A few lucky trades","Drop 5 trades, the profit's gone"),
+           ("3. Fees beat the edge","Fees cost more than it earns")]
+    for i,(a,b) in enumerate(signs):
+        def sc(img,d,t,a=a,b=b):
+            bg(img)
+            ctext(d,360,a.split('. ',1)[0]+".",font(160,mono=True),RED)
+            d.rounded_rectangle([110,620,W-110,900],28,fill=PANEL)
+            ctext(d,680,a.split('. ',1)[1],font(60),INK,center=False,x=160)
+            ctext(d,780,b,font(40,mono=False,bold=False),INK2,center=False,x=160)
+        scenes.append((pick([f"{a[3:]}. {b}.", f"Sign {a[0]}. {a[3:]} — {b.lower()}."]), sc))
+    def cta(img,d,t):
+        bg(img)
+        ctext(d,470,"VETT CHECKS",font(72),INK)
+        ctext(d,560,"ALL THREE FOR YOU",font(66),INK)
+        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
+        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+    scenes.append((pick([
+        "Vett checks all three for you in seconds. Free, on Telegram.",
+        "Paste any wallet and Vett checks all three instantly. Free on Telegram."]), cta))
+    return scenes
+
+def spotlight_template(rng):
+    good=[a for a in _scan() if a.get('final_verdict')=='COPYABLE' and a.get('copier_pnl',0)>0 and a.get('maker_pct',100)<40]
+    good.sort(key=lambda a:-a.get('score',0))
+    if not good: return None
+    a=good[0]
+    title=f"A Hyperliquid wallet you can ACTUALLY copy (+{money(a['copier_pnl']).lstrip('+')}) ✅"
+    desc=("Rare: this wallet passes every honesty check — taker-executable, survives a luck test, "
+          f"and beats the fees.\n\nVet any wallet free → @vett_hl_bot on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
+    return spotlight_scenes(a,rng), dict(kind='spotlight',addr=a['addr'],title=title,description=desc,tags=VETT_TAGS), "spotlight"
+
+def signs_template(rng):
+    title="3 signs a Hyperliquid wallet will LOSE you money 🚩"
+    desc=("Market-maker fills, luck-concentrated profit, and fees bigger than the edge — the three "
+          f"reasons a 'green' wallet loses a copier money.\n\n{CTA_LINE}\n\n{HASHTAGS}")
+    return signs_scenes(rng), dict(kind='signs',addr='',title=title,description=desc,tags=VETT_TAGS), "signs"
+
 def render_and_write(scenes, out):
     tmp="output/_tmp"; shutil.rmtree(tmp,ignore_errors=True); os.makedirs(tmp)
     durs=[]; sfr=[]
@@ -460,7 +560,8 @@ def render_and_write(scenes, out):
 def generate(out="output/short.mp4"):
     rng=random.Random()
     # trap is the core; top3 and truth add variety. Weighted, with fallback.
-    order=[trap_template, trap_template, top3_template, truth_template]
+    order=[trap_template, trap_template, top3_template, truth_template,
+           spotlight_template, signs_template]
     rng.shuffle(order)
     res=None
     for tf in order:
