@@ -14,7 +14,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STATE = os.path.join(HERE, "..", "state", "posted.json")
 
 def _slot():
-    return "am" if time.gmtime().tm_hour < 18 else "pm"
+    h = time.gmtime().tm_hour        # three slots/day -> 3 posts to each platform
+    return "s1" if h < 16 else "s2" if h < 21 else "s3"
 
 def _today():
     return time.strftime("%Y-%m-%d", time.gmtime())

@@ -303,8 +303,13 @@ def dur(wav):
         capture_output=True,text=True)
     return float(r.stdout.strip())
 
-HASHTAGS="#vett #trading #crypto #hyperliquid #bitcoin"
-VETT_TAGS=["vett","trading","crypto","hyperliquid","bitcoin"]
+HASHTAGS="#hyperliquid #copytrading #crypto #trading #hyperliquidtrading #smartmoney #defi #bitcoin #vett"
+VETT_TAGS=["hyperliquid","hyperliquid copy trading","copy trading","crypto copy trading",
+    "hyperliquid wallet tracker","smart money tracker","whale tracker","perps trading",
+    "hyperliquid leaderboard","crypto trading","trading bot","defi trading","bitcoin","HYPE crypto","vett"]
+# keyword-dense line appended to every description for YouTube/TikTok search
+SEO_LINE=("Hyperliquid copy trading, honest wallet vetting, and smart-money / whale tracking — "
+          "see what a copier would really earn after fees, slippage and luck, free on Telegram.")
 CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
 
 def _scan():
@@ -622,6 +627,7 @@ def generate(out="output/short.mp4"):
     if not res: res=trap_template(rng)
     if not res: print("no story available"); return None
     scenes, meta, label = res
+    meta["description"] = meta.get("description", "") + "\n\n" + SEO_LINE   # SEO keywords
     print(f"template: {label}")
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
