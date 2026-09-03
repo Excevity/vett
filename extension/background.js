@@ -31,7 +31,7 @@ async function getWatch() {
 }
 async function setWatch(w) { await chrome.storage.local.set({ watch: w }); }
 
-const WHALE_MIN = 25000; // $ notional for a whale-move alert
+async function getWhaleMin() { const o = await chrome.storage.local.get("whaleMin"); return o.whaleMin != null ? o.whaleMin : 25000; }
 async function getPos() { const o = await chrome.storage.local.get("bgpos"); return o.bgpos || {}; }
 async function setPos(p) { await chrome.storage.local.set({ bgpos: p }); }
 
@@ -52,6 +52,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   const addrs = Object.keys(watch);
   if (!addrs.length) return;
   const allPos = await getPos();
+  const whaleMin = await getWhaleMin();
   for (const addr of addrs) {
     try {
       const an = await analyze(addr);
@@ -70,7 +71,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
       const np = await positionsNotional(addr); const op = allPos[addr] || {};
       for (const coin in np) {
         const [val, side] = np[coin]; const prev = (op[coin] || [0])[0];
-        if (val >= WHALE_MIN && val - prev >= WHALE_MIN) {
+        if (whaleMin > 0 && val >= whaleMin && val - prev >= whaleMin) {
           chrome.notifications.create("vett-w-" + addr + coin + Date.now(), {
             type: "basic", iconUrl: "icons/128.png",
             title: "🐋 Vett — whale move",

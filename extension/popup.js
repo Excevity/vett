@@ -132,6 +132,18 @@ async function runPositions() {
 // ---------- WATCHLIST ----------
 async function renderWatch() {
   $("watchHint").textContent = T(lang, "watch_hint");
+  // adjustable whale threshold (feature: user sets how big a move pings them)
+  $("whaleLbl").textContent = T(lang, "whale_lbl");
+  $("whaleSave").textContent = T(lang, "whale_save");
+  try {
+    const o = await chrome.storage.local.get("whaleMin");
+    $("whaleMin").value = (o.whaleMin != null ? o.whaleMin : 25000);
+  } catch (e) { $("whaleMin").value = 25000; }
+  $("whaleSave").onclick = async () => {
+    await chrome.storage.local.set({ whaleMin: parseInt($("whaleMin").value) || 0 });
+    $("whaleSave").textContent = "✓";
+    setTimeout(() => { $("whaleSave").textContent = T(lang, "whale_save"); }, 1200);
+  };
   const w = await getWatch();
   const addrs = Object.keys(w);
   if (!addrs.length) return msg($("watchOut"), T(lang, "watch_empty"));
