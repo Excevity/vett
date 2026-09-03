@@ -53,7 +53,7 @@
       card.innerHTML = `<span class="cl">✕</span>
         <div class="vh vett-${cls}">${icon} ${v}</div>
         <div class="r"><span class="k">Advertised</span><span class="${a.raw_pnl<0?'vett-neg':'vett-pos'}">${money(a.raw_pnl)}</span></div>
-        <div class="r"><span class="k">Copier really gets</span><span class="${a.copier_pnl<0?'vett-neg':'vett-pos'}">${money(a.copier_pnl)}</span></div>
+        <div class="r"><span class="k">Copier would've made</span><span class="${a.copier_pnl<0?'vett-neg':'vett-pos'}">${money(a.copier_pnl)}</span></div>
         <div class="r"><span class="k">Win rate · maker</span><span>${a.win_rate.toFixed(0)}% · ${a.maker_pct.toFixed(0)}%</span></div>
         ${flags}`;
       card.querySelector(".cl").onclick = closeCard;

@@ -311,6 +311,13 @@ VETT_TAGS=["hyperliquid","hyperliquid copy trading","copy trading","crypto copy 
 SEO_LINE=("Hyperliquid copy trading, honest wallet vetting, and smart-money / whale tracking — "
           "see what a copier would really earn after fees, slippage and luck, free on Telegram.")
 CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
+# Plain-English legal shield, appended to every description. Backward-looking on
+# purpose: figures are what a copier WOULD HAVE earned over an already-finished
+# period — never a promise of future gains.
+DISCLAIMER=("Educational only — not financial advice. Any figures show what a copier WOULD HAVE "
+            "earned over the past period analyzed, from public on-chain data; past results do not "
+            "predict future returns. Trading perpetuals is high-risk and you can lose all your funds. "
+            "Do your own research. Vett is independent and not affiliated with Hyperliquid.")
 
 def _scan():
     try: return json.load(open(SCANNER_DATA))
@@ -333,14 +340,14 @@ def top3_scenes(rows, rng):
             bg(img)
             ctext(d,280,f"#{idx}",font(120),TEAL)
             d.rounded_rectangle([120,500,W-120,1040],36,fill=PANEL)
-            ctext(d,560,"A COPIER REALLY GETS",font(38,mono=True),INK2)
+            ctext(d,560,"A COPIER WOULD'VE MADE",font(38,mono=True),INK2)
             val=int(ease(min(t*1.6,1))*a['copier_pnl'])
             ctext(d,630,f"+${val:,.0f}",font(120,mono=True),GREEN)
             ctext(d,840,f"{a['maker_pct']:.0f}% maker · {a['coins']} coins · {a['span_days']:.0f} days",font(38,mono=True),INK2)
             ctext(d,1160,f"{a['addr'][:6]}…{a['addr'][-4:]}",font(40,mono=True),INK3)
         scenes.append((pick([
-            f"Number {idx}. A copier nets {say_money(a['copier_pnl'])}, and it holds up even when you drop the luckiest trades.",
-            f"Number {idx}. After every real cost, you'd still make {say_money(a['copier_pnl'])}."]), card))
+            f"Number {idx}. A copier would have netted {say_money(a['copier_pnl'])}, and it holds up even when you drop the luckiest trades.",
+            f"Number {idx}. After every real cost, a copier would have made {say_money(a['copier_pnl'])} over this period."]), card))
     def cta(img,d,t):
         bg(img)
         ctext(d,540,"CHECK ANY WALLET",font(72),INK)
@@ -449,14 +456,14 @@ def spotlight_scenes(a, rng):
         bg(img)
         ctext(d,300,"✅ COPYABLE",font(88),GREEN)
         d.rounded_rectangle([120,520,W-120,1050],36,fill=PANEL)
-        ctext(d,580,"A COPIER REALLY GETS",font(38,mono=True),INK2)
+        ctext(d,580,"A COPIER WOULD'VE MADE",font(38,mono=True),INK2)
         val=int(ease(min(t*1.6,1))*a['copier_pnl'])
         ctext(d,650,f"+${val:,.0f}",font(120,mono=True),GREEN)
         ctext(d,860,f"{a['maker_pct']:.0f}% maker · {a['coins']} coins · {a['span_days']:.0f} days",font(38,mono=True),INK2)
         ctext(d,1180,tag,font(40,mono=True),INK3)
     scenes.append((pick([
-        f"After real fees and slippage, a copier still nets {say_money(a['copier_pnl'])}.",
-        f"Even paying every real cost, you'd make {say_money(a['copier_pnl'])} copying this one."]), s2))
+        f"After real fees and slippage, a copier would have netted {say_money(a['copier_pnl'])} over the period.",
+        f"Even paying every real cost, copying this one would have made {say_money(a['copier_pnl'])} last period."]), s2))
     def s3(img,d,t):
         bg(img)
         ctext(d,340,"WHY IT PASSES",font(60),INK)
@@ -488,10 +495,10 @@ def signs_scenes(rng):
     def s1(img,d,t):
         bg(img)
         ctext(d,420,"3 SIGNS A WALLET",font(80),INK)
-        ctext(d,530,"WILL LOSE YOU MONEY",font(66),RED)
+        ctext(d,530,"WOULD LOSE YOU MONEY",font(66),RED)
         ctext(d,760,"before you copy it",font(46,mono=True),INK2)
     scenes.append((pick([
-        "Three signs a Hyperliquid wallet will lose you money, even though it looks green.",
+        "Three signs a Hyperliquid wallet would lose you money, even though it looks green.",
         "Before you copy any wallet, check for these three red flags."]), s1))
     signs=[("1. It's a market maker","You can't copy the spread edge"),
            ("2. A few lucky trades","Drop 5 trades, the profit's gone"),
@@ -577,7 +584,7 @@ def spotlight_template(rng):
     return spotlight_scenes(a,rng), dict(kind='spotlight',addr=a['addr'],title=title,description=desc,tags=VETT_TAGS), "spotlight"
 
 def signs_template(rng):
-    title="3 signs a Hyperliquid wallet will LOSE you money 🚩"
+    title="3 signs a Hyperliquid wallet would LOSE you money 🚩"
     desc=("Market-maker fills, luck-concentrated profit, and fees bigger than the edge — the three "
           f"reasons a 'green' wallet loses a copier money.\n\n{CTA_LINE}\n\n{HASHTAGS}")
     return signs_scenes(rng), dict(kind='signs',addr='',title=title,description=desc,tags=VETT_TAGS), "signs"
@@ -627,7 +634,7 @@ def generate(out="output/short.mp4"):
     if not res: res=trap_template(rng)
     if not res: print("no story available"); return None
     scenes, meta, label = res
-    meta["description"] = meta.get("description", "") + "\n\n" + SEO_LINE   # SEO keywords
+    meta["description"] = meta.get("description", "") + "\n\n" + SEO_LINE + "\n\n" + DISCLAIMER  # SEO + legal
     print(f"template: {label}")
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
