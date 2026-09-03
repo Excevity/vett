@@ -153,19 +153,29 @@ function buildLang() {
   sel.onchange = () => { lang = sel.value; localStorage.setItem("vett_lang", lang); applyLang(); };
 }
 
-// wire up
-document.querySelectorAll(".tab").forEach((t) => t.onclick = () => showView(t.dataset.view));
-$("go").onclick = runCheck;
-$("addr").addEventListener("keydown", (e) => { if (e.key === "Enter") runCheck(); });
-$("cmpGo").onclick = runCompare;
-$("posGo").onclick = runPositions;
-$("posAddr").addEventListener("keydown", (e) => { if (e.key === "Enter") runPositions(); });
-$("topGo").onclick = runTop;
-
-buildLang(); applyLang(); showView("check");
-
-// prefill from the active tab's URL if it contains an address
-chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  const m = ((tabs[0] && tabs[0].url) || "").match(ADDR_RE);
-  if (m) { $("addr").value = m[0]; runCheck(); }
-});
+// wire up — wrapped so any failure SHOWS in the popup instead of a blank UI
+function init() {
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => showView(t.dataset.view));
+  $("go").onclick = runCheck;
+  $("addr").addEventListener("keydown", (e) => { if (e.key === "Enter") runCheck(); });
+  $("cmpGo").onclick = runCompare;
+  $("posGo").onclick = runPositions;
+  $("posAddr").addEventListener("keydown", (e) => { if (e.key === "Enter") runPositions(); });
+  $("topGo").onclick = runTop;
+  buildLang(); applyLang(); showView("check");
+  if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const m = ((tabs[0] && tabs[0].url) || "").match(ADDR_RE);
+      if (m) { $("addr").value = m[0]; runCheck(); }
+    });
+  }
+}
+try {
+  init();
+} catch (e) {
+  // surface the real error right in the popup so it's never a silent blank
+  const o = document.getElementById("out") || document.body;
+  if (o) o.innerHTML = '<div style="color:#ff5a52;font:12px monospace;padding:10px;white-space:pre-wrap">'
+    + "Vett init error:\n" + (e && e.stack ? e.stack : String(e)) + "</div>";
+  console.error("Vett init error:", e);
+}

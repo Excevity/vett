@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vett — Honest HL Wallet Checker",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Before you copy any Hyperliquid wallet, see what a copier would REALLY earn after fees, slippage and luck. Check, compare, watch & get alerts.",
   "action": {
     "default_popup": "popup.html",
