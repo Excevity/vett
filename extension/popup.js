@@ -1,7 +1,8 @@
 let lang = localStorage.getItem("vett_lang") || pickLang();
 const $ = (id) => document.getElementById(id);
 const ADDR_RE = /0x[0-9a-fA-F]{40}/;
-const money = (x) => (x < 0 ? "-" : "+") + "$" + Math.abs(x).toLocaleString("en-US", { maximumFractionDigits: 0 });
+// `money` is already defined globally by analyzer.js — don't redeclare it here
+// (two declarations in the popup's shared scope = "already declared" SyntaxError).
 
 // ---------- watchlist storage (shared with the background alert worker) ----------
 async function getWatch() { const o = await chrome.storage.local.get("watch"); return o.watch || {}; }
