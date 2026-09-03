@@ -19,19 +19,40 @@ function verdictCard(a, res, addr, opts = {}) {
   const makerLine = a.maker_pct > 50 ? `<div class="flag">${T(lang, "maker", { p: a.maker_pct.toFixed(0) })}</div>` : "";
   const watchBtn = opts.watchBtn
     ? `<div style="margin-top:8px"><button class="wbtn" id="wtoggle" data-addr="${addr}">${opts.watching ? T(lang,"unwatch_btn") : T(lang,"watch_btn")}</button></div>` : "";
+  const holdRow = a.avg_hold_hours > 0
+    ? `<div class="row"><span class="k">${T(lang,"hold")}</span><span class="v">${a.avg_hold_hours<48?a.avg_hold_hours.toFixed(0)+"h":(a.avg_hold_hours/24).toFixed(0)+"d"}</span></div>` : "";
+  const histRow = (opts.history && opts.history.length > 1)
+    ? `<div class="sec">${T(lang,"hist")}</div><div style="font-size:11px;color:var(--dim)">${opts.history.slice(-4).map(h=>h[0].slice(5)+" "+h[1].split(" ")[0]).join(" → ")}</div>` : "";
+  const calcRow = opts.calc
+    ? `<div class="sec">${T(lang,"calc_amt")}</div>
+       <div class="inp"><input id="calcAmt" type="number" placeholder="5000" value="5000">
+       <button id="calcBtn" class="pri">${T(lang,"calc_btn")}</button></div>
+       <div id="calcOut" style="font-size:12px;padding:2px 0"></div>` : "";
   return `<div class="card">
-    <div class="vhead ${cls}">${icon} ${v}</div>
+    <div class="vhead ${cls}">${icon} ${v} · ${T(lang,"grade")} ${a.grade||"F"}</div>
     <div class="sec">${T(lang, "adv")}</div>
     <div class="row"><span class="k">PnL</span><span class="v ${a.raw_pnl<0?'neg':'pos'}">${money(a.raw_pnl)}</span></div>
     <div class="row"><span class="k">${T(lang,"winrate")}</span><span class="v">${a.win_rate.toFixed(0)}%</span></div>
     <div class="sec">${T(lang, "copier")}</div>
     <div class="row"><span class="k">${T(lang,"afterfees")}</span><span class="v ${a.copier_pnl<0?'neg':'pos'}">${money(a.copier_pnl)}</span></div>
     <div class="row"><span class="k">${T(lang,"traded",{c:a.coins,d:a.span_days.toFixed(0)})}</span><span class="v"></span></div>
+    ${holdRow}
     ${makerLine}
     ${flags ? `<div class="sec">${T(lang,"flags")}</div>${flags}` : ""}
+    ${histRow}
     <div class="foot">${foot}</div>
+    ${calcRow}
     ${watchBtn}
   </div>`;
+}
+
+// verdict history in local storage (feature #7, extension side)
+async function getVhist() { const o = await chrome.storage.local.get("vhist"); return o.vhist || {}; }
+async function recordVhist(addr, v) {
+  const h = await getVhist(); const k = addr.toLowerCase(); const arr = h[k] || [];
+  const today = new Date().toISOString().slice(0, 10);
+  if (!arr.length || arr[arr.length - 1][1] !== v) { arr.push([today, v]); h[k] = arr.slice(-8); await chrome.storage.local.set({ vhist: h }); }
+  return h[k] || arr;
 }
 const msg = (el, text) => { el.innerHTML = `<div class="msg">${text}</div>`; };
 
@@ -43,12 +64,24 @@ async function analyzeInto(el, addr, withWatch) {
     if (a.tooFew) return msg(el, T(lang, "toofew"));
     const res = verdict(a);
     const watching = withWatch ? await isWatched(addr) : false;
-    el.innerHTML = verdictCard(a, res, addr, { watchBtn: withWatch, watching });
+    const history = await recordVhist(addr, res.v);
+    el.innerHTML = verdictCard(a, res, addr, { watchBtn: withWatch, watching, history, calc: withWatch });
     if (withWatch) {
       const b = $("wtoggle");
       b && (b.onclick = async () => {
         if (await isWatched(addr)) { await delWatch(addr); b.textContent = T(lang, "watch_btn"); }
         else { await addWatch(addr, res.v); b.textContent = T(lang, "unwatch_btn"); }
+      });
+      const cb = $("calcBtn");
+      cb && (cb.onclick = async () => {
+        const amt = parseFloat($("calcAmt").value) || 0;
+        if (!amt) return;
+        $("calcOut").textContent = T(lang, "checking");
+        try {
+          const eq = await accountValue(addr);
+          const est = eq > 0 ? a.copier_pnl * (amt / eq) : (a.copier_roi / 100) * amt;
+          $("calcOut").innerHTML = `<b class="${est<0?'neg':'pos'}">${T(lang,"calc_res",{a:amt.toLocaleString("en-US"),p:money(est)})}</b> · ${a.span_days.toFixed(0)}d`;
+        } catch (e) { $("calcOut").textContent = T(lang, "err"); }
       });
     }
   } catch (e) { msg(el, T(lang, "err")); }
@@ -111,15 +144,19 @@ async function renderWatch() {
     el.onclick = async () => { await delWatch(el.dataset.addr); renderWatch(); });
 }
 
-// ---------- TOP ----------
+// ---------- TOP / SCREENER (feature #2 filters) ----------
 async function runTop() {
+  const fMaker = parseFloat($("fMaker").value), fMin = parseFloat($("fMin").value), fDays = parseFloat($("fDays").value);
   $("topGo").disabled = true; msg($("topOut"), T(lang, "top_scanning", { i: 0, n: 30 }));
   try {
-    const rows = await scanTop(30, (i, n) => msg($("topOut"), T(lang, "top_scanning", { i, n })));
+    let rows = await scanTop(30, (i, n) => msg($("topOut"), T(lang, "top_scanning", { i, n })));
+    if (!isNaN(fMaker)) rows = rows.filter((r) => r.maker < fMaker);
+    if (!isNaN(fMin)) rows = rows.filter((r) => r.copier >= fMin);
+    if (!isNaN(fDays)) rows = rows.filter((r) => r.days > fDays);
     if (!rows.length) return msg($("topOut"), T(lang, "top_none"));
-    $("topOut").innerHTML = rows.slice(0, 12).map((r, i) =>
+    $("topOut").innerHTML = rows.slice(0, 12).map((r) =>
       `<div class="trow"><span>${r.v==="COPYABLE"?"✅":"⚠️"} <code>${r.addr.slice(0,8)}…</code></span>
-       <span class="pos">${money(r.copier)}</span></div>`).join("");
+       <span class="pos">${money(r.copier)} · ${r.maker.toFixed(0)}%mkr · ${r.days.toFixed(0)}d</span></div>`).join("");
   } catch (e) { msg($("topOut"), T(lang, "err")); }
   $("topGo").disabled = false;
 }

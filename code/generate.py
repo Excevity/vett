@@ -511,6 +511,56 @@ def signs_scenes(rng):
         "Paste any wallet and Vett checks all three instantly. Free on Telegram."]), cta))
     return scenes
 
+# ---- template: FEATURE showcase (advertise what Vett does) ----
+def feature_scenes(rng):
+    pick=lambda o: rng.choice(o); scenes=[]
+    def s1(img,d,t):
+        bg(img)
+        ctext(d,420,"EVERYTHING VETT",font(84),INK)
+        ctext(d,530,"DOES FOR YOU",font(84),TEAL)
+        ctext(d,760,"free · on Telegram",font(46,mono=True),INK2)
+    scenes.append((pick([
+        "Here's everything Vett does for you — free.",
+        "Vett is more than a wallet checker. Here's what it does."]), s1))
+    feats=[("🔍","Check any wallet","honest copy verdict + grade"),
+           ("🔎","Screener","filter for the real ones"),
+           ("🧮","Copy calculator","what you'd really make"),
+           ("🐋","Whale alerts","when a wallet makes a big move"),
+           ("💎","Gem alerts","when a copyable wallet appears")]
+    rng.shuffle(feats); feats=feats[:4]
+    def s2(img,d,t):
+        bg(img)
+        ctext(d,300,"WHAT YOU GET",font(60),INK)
+        y=520; shown=int(t*len(feats))+1
+        for i,(e,a,b) in enumerate(feats):
+            if i>=shown: break
+            d.rounded_rectangle([100,y,W-100,y+185],26,fill=PANEL)
+            ctext(d,y+45,f"{e}  {a}",font(52),TEAL,center=False,x=150)
+            ctext(d,y+115,b,font(36,mono=False,bold=False),INK2,center=False,x=150)
+            y+=210
+    scenes.append((pick([
+        "Check any wallet, filter for the copyable ones, and see what you'd actually make.",
+        "A screener, a copy calculator, whale alerts, and gem alerts — all in one bot."]), s2))
+    def cta(img,d,t):
+        bg(img)
+        ctext(d,470,"ALL FREE",font(84),INK)
+        ctext(d,570,"NO LOGIN",font(84),INK)
+        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
+        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
+        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+    scenes.append((pick([
+        "All free, no login. Vett, on Telegram.",
+        "Try it free — Vett, on Telegram."]), cta))
+    return scenes
+
+def feature_template(rng):
+    return feature_scenes(rng), dict(kind='feature',addr='',
+        title="Everything Vett does for Hyperliquid copy-traders (free) 🛠️",
+        description=("Check any wallet's honest copy verdict, filter for the copyable ones, calculate "
+          f"what you'd really make, and get whale + gem alerts — free on Telegram.\n\n@vett_hl_bot "
+          f"(t.me/vett_hl_bot)\n\n{HASHTAGS}"),
+        tags=VETT_TAGS), "feature"
+
 def spotlight_template(rng):
     good=[a for a in _scan() if a.get('final_verdict')=='COPYABLE' and a.get('copier_pnl',0)>0 and a.get('maker_pct',100)<40]
     good.sort(key=lambda a:-a.get('score',0))
@@ -560,8 +610,10 @@ def render_and_write(scenes, out):
 def generate(out="output/short.mp4"):
     rng=random.Random()
     # trap is the core; top3 and truth add variety. Weighted, with fallback.
-    order=[trap_template, trap_template, top3_template, truth_template,
-           spotlight_template, signs_template]
+    # trap is weighted heaviest (the hook that gets views); feature-showcase is
+    # rare (~1 in 8) so the channel sells the tool without becoming an ad reel.
+    order=[trap_template, trap_template, trap_template, top3_template, truth_template,
+           spotlight_template, signs_template, feature_template]
     rng.shuffle(order)
     res=None
     for tf in order:

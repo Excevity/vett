@@ -50,10 +50,37 @@ async function analyze(addr) {
   const coins = new Set(fills.map((f) => f.coin)).size;
   const copier_roi = tot_vol ? (100 * copier_pnl) / tot_vol : 0;
   const truncated = fills.length >= 2000; // HL caps userFills ~2000
+  const cw = pnls.filter((p) => p > 0).reduce((s, x) => s + x, 0);
+  const cl = Math.abs(pnls.filter((p) => p < 0).reduce((s, x) => s + x, 0));
+  const profit_factor = cl > 0 ? cw / cl : 99;
 
-  return { addr, raw_pnl, gross_pnl, win_rate, maker_pct, tot_vol,
+  // avg hold: FIFO-pair each coin's Opens with subsequent Closes (mirror of analyzer.py)
+  const opensByCoin = {}; const holds = [];
+  for (const f of fills.slice().sort((a, b) => a.time - b.time)) {
+    const d = f.dir || "", c = f.coin;
+    if (d.includes("Open")) (opensByCoin[c] = opensByCoin[c] || []).push(f.time);
+    else if (d.includes("Close") && opensByCoin[c] && opensByCoin[c].length)
+      holds.push(f.time - opensByCoin[c].shift());
+  }
+  const avg_hold_hours = holds.length ? holds.reduce((s, x) => s + x, 0) / holds.length / 3600000 : 0;
+
+  const a = { addr, raw_pnl, gross_pnl, win_rate, maker_pct, tot_vol,
     copier_pnl, copier_cost, top5_share, pnl_ex_top5, span_days, coins, copier_roi,
-    n_closes: closes.length, truncated };
+    profit_factor, n_closes: closes.length, truncated, avg_hold_hours };
+  a.score = score(a); a.grade = grade(a.score);
+  return a;
+}
+
+function score(a) {
+  if (a.maker_pct > 50 || a.copier_pnl <= 0) return 0;
+  let s = 0;
+  s += Math.min(a.copier_roi * 100, 50); s += Math.min(a.profit_factor * 8, 40);
+  s += (100 - a.top5_share) * 0.3; s += Math.min(a.coins * 2, 30); s += Math.min(a.span_days * 0.1, 30);
+  if (a.span_days < 14) s -= 40;
+  return Math.max(0, s);
+}
+function grade(s) {
+  return s >= 140 ? "A+" : s >= 115 ? "A" : s >= 90 ? "B" : s >= 65 ? "C" : s >= 35 ? "D" : "F";
 }
 
 // Mirror of verdict() in analyzer.py
@@ -79,6 +106,12 @@ function verdict(a) {
 function money(x) {
   const s = x < 0 ? "-" : "+";
   return s + "$" + Math.abs(x).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+// Current perps account value (for the copy calculator).
+async function accountValue(addr) {
+  const cs = await hlPost({ type: "clearinghouseState", user: addr });
+  return parseFloat((cs && cs.marginSummary && cs.marginSummary.accountValue) || 0) || 0;
 }
 
 // Current open positions for a wallet (for the Positions view).
@@ -141,4 +174,4 @@ async function scanTop(n, onProgress) {
 }
 
 if (typeof module !== "undefined")
-  module.exports = { analyze, verdict, money, positions, leaderboardCandidates, scanTop };
+  module.exports = { analyze, verdict, money, positions, accountValue, leaderboardCandidates, scanTop };

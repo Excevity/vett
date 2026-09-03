@@ -31,11 +31,27 @@ async function getWatch() {
 }
 async function setWatch(w) { await chrome.storage.local.set({ watch: w }); }
 
+const WHALE_MIN = 25000; // $ notional for a whale-move alert
+async function getPos() { const o = await chrome.storage.local.get("bgpos"); return o.bgpos || {}; }
+async function setPos(p) { await chrome.storage.local.set({ bgpos: p }); }
+
+async function positionsNotional(addr) {
+  const cs = await hlPost({ type: "clearinghouseState", user: addr });
+  const out = {};
+  for (const p of (cs && cs.assetPositions) || []) {
+    const pos = p.position || {}; const szi = parseFloat(pos.szi) || 0;
+    if (szi === 0) continue;
+    out[pos.coin] = [parseFloat(pos.positionValue) || 0, szi > 0 ? "LONG" : "SHORT"];
+  }
+  return out;
+}
+
 chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name !== ALARM) return;
   const watch = await getWatch();
   const addrs = Object.keys(watch);
   if (!addrs.length) return;
+  const allPos = await getPos();
   for (const addr of addrs) {
     try {
       const an = await analyze(addr);
@@ -43,16 +59,29 @@ chrome.alarms.onAlarm.addListener(async (a) => {
       const nv = verdict(an).v;
       const ov = watch[addr];
       if (ov && ov !== nv) {
-        chrome.notifications.create("vett-" + addr + Date.now(), {
+        chrome.notifications.create("vett-v-" + addr + Date.now(), {
           type: "basic", iconUrl: "icons/128.png",
-          title: "Vett alert — verdict changed",
-          message: `${addr.slice(0, 8)}…${addr.slice(-4)}\n${ov} → ${nv}`,
-          priority: 2,
+          title: "Vett — verdict changed",
+          message: `${addr.slice(0, 8)}…${addr.slice(-4)}\n${ov} → ${nv}`, priority: 2,
         });
       }
       watch[addr] = nv;
+      // whale alert: coin newly appears / grows by >= WHALE_MIN
+      const np = await positionsNotional(addr); const op = allPos[addr] || {};
+      for (const coin in np) {
+        const [val, side] = np[coin]; const prev = (op[coin] || [0])[0];
+        if (val >= WHALE_MIN && val - prev >= WHALE_MIN) {
+          chrome.notifications.create("vett-w-" + addr + coin + Date.now(), {
+            type: "basic", iconUrl: "icons/128.png",
+            title: "🐋 Vett — whale move",
+            message: `${addr.slice(0, 8)}… ${side} ${coin} ~$${val.toLocaleString("en-US", { maximumFractionDigits: 0 })}\nVerdict: ${nv}`,
+            priority: 2,
+          });
+        }
+      }
+      allPos[addr] = np;
     } catch (e) {}
     await new Promise((r) => setTimeout(r, 300));
   }
-  await setWatch(watch);
+  await setWatch(watch); await setPos(allPos);
 });
