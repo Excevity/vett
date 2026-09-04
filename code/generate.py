@@ -48,6 +48,30 @@ def ctext(d,y,txt,fnt,fill,center=True,x=W//2,anchor_m=True):
     return h
 def ease(t): return 1-(1-t)**3
 
+def _fit_font(txt, max_w, start, floor=32, mono=False, bold=True):
+    """Largest font size (<= start) at which txt fits within max_w px."""
+    s = start
+    while s > floor and font(s, mono=mono, bold=bold).getlength(txt) > max_w:
+        s -= 2
+    return font(s, mono=mono, bold=bold)
+
+def draw_cta_card(img, d, headline="CHECK ANY WALLET — FREE"):
+    """Shared end card built for CONVERSION. On Shorts/TikTok '@vett_hl_bot' is NOT a
+    clickable link, so we tell the viewer the exact 3 steps to get there instead of
+    just flashing the handle. Every template's CTA scene uses this."""
+    bg(img)
+    ctext(d,300,headline,_fit_font(headline, W-120, 72, 46),INK)
+    ctext(d,404,"in 10 seconds, on Telegram",font(44,mono=True),INK3)
+    steps=["1   Open Telegram","2   Search   @vett_hl_bot","3   Paste any 0x wallet"]
+    for i,s in enumerate(steps):
+        y=560+i*185
+        d.rounded_rectangle([130,y,W-130,y+150],28,fill=PANEL)
+        ctext(d,y+42,s,font(52),INK)
+    d.rounded_rectangle([140,1200,W-140,1392],38,fill=(15,42,34),outline=TEAL,width=3)
+    ctext(d,1234,"@vett_hl_bot",font(86,mono=True),TEAL)
+    ctext(d,1344,"free · no login · instant",font(40,mono=True),INK2)
+    ctext(d,1520,"just search it on Telegram.",font(44),INK3)
+
 # ---- optional photo background (Pexels, free + commercial-use). OFF unless PEXELS_KEY is set. ----
 _BGIMG = None
 def bg(img):
@@ -267,22 +291,13 @@ def build_scenes(s, rng=None):
         "The fees burn the edge, and most of the wins were just a few lucky trades you'd never catch.",
         "Their volume eats the profit, and the gains came from trades a copier can't replicate."]), s4))
 
-    # 5 CTA — always shows BOTH the @ handle and the t.me link
+    # 5 CTA — explicit 3-step conversion card (handle isn't clickable on Shorts)
     def s5(img,d,t):
-        bg(img)
-        ctext(d,470,cta_head[0],font(72),INK)
-        ctext(d,570,cta_head[1],font(72),INK)
-        d.rounded_rectangle([150,740,W-150,1010],40,fill=(15,42,34))
-        ctext(d,790,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,910,"t.me/vett_hl_bot",font(48,mono=True),INK2)
-        ctext(d,1080,"free · no login · instant",font(44,mono=True),INK3)
-        ctext(d,1500,cta_stat,font(44),INK3)
-        ctext(d,1560,"don't be the one who finds out.",font(44),INK3)
+        draw_cta_card(img, d, "CHECK ANY WALLET — FREE")
     scenes.append((pick([
-        "Check any wallet for free, before you copy it. Vett, on Telegram.",
-        "Vet any wallet in seconds, free. Find Vett on Telegram.",
-        "Don't copy blind. Check any wallet free with Vett on Telegram.",
-        "Know before you copy. Vett is free on Telegram."]), s5))
+        "Want to check a wallet yourself? Open Telegram, search at vett underscore h l bot, and paste any address. It's free.",
+        "Do this before you copy anyone: open Telegram, search at vett underscore h l bot, paste the wallet. Free, no login.",
+        "Here's how to check any wallet free — open Telegram, search at vett underscore h l bot, and paste the address."]), s5))
     return scenes
 
 # ---------------- TTS (Kokoro, natural voice) ----------------
@@ -349,15 +364,10 @@ def top3_scenes(rows, rng):
             f"Number {idx}. A copier would have netted {say_money(a['copier_pnl'])}, and it holds up even when you drop the luckiest trades.",
             f"Number {idx}. After every real cost, a copier would have made {say_money(a['copier_pnl'])} over this period."]), card))
     def cta(img,d,t):
-        bg(img)
-        ctext(d,540,"CHECK ANY WALLET",font(72),INK)
-        ctext(d,640,"BEFORE YOU COPY",font(72),INK)
-        d.rounded_rectangle([150,780,W-150,1050],40,fill=(15,42,34))
-        ctext(d,830,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,950,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        draw_cta_card(img, d, "CHECK ANY WALLET — FREE")
     scenes.append((pick([
-        "Want the full list? Check any wallet free with Vett on Telegram.",
-        "Vet any wallet yourself, free. Vett, on Telegram."]), cta))
+        "Want the full list? Open Telegram, search at vett underscore h l bot, and paste any wallet. It's free.",
+        "Check any wallet yourself — open Telegram, search at vett underscore h l bot, paste the address. Free, no login."]), cta))
     return scenes
 
 # ---- alternate template: LEADERBOARD TRUTH-CHECK ----
@@ -393,15 +403,10 @@ def truth_scenes(n, pct, rng):
         "Fees, slippage, and luck. The advertised number is never what a copier gets.",
         "Real fees, worse fills, and lucky trades you could never catch."]), s3))
     def cta(img,d,t):
-        bg(img)
-        ctext(d,560,"KNOW BEFORE",font(76),INK)
-        ctext(d,660,"YOU COPY",font(76),INK)
-        d.rounded_rectangle([150,820,W-150,1090],40,fill=(15,42,34))
-        ctext(d,870,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,990,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        draw_cta_card(img, d, "KNOW BEFORE YOU COPY")
     scenes.append((pick([
-        "Check any wallet free before you copy it. Vett, on Telegram.",
-        "Don't be the one who finds out the hard way. Vett, free on Telegram."]), cta))
+        "Check any wallet free before you copy — open Telegram, search at vett underscore h l bot, and paste the address.",
+        "Don't find out the hard way. Open Telegram, search at vett underscore h l bot, and check the wallet free."]), cta))
     return scenes
 
 # ---- template dispatchers: each returns (scenes, meta, label) or None ----
@@ -478,15 +483,10 @@ def spotlight_scenes(a, rng):
         "It takes trades you can actually copy, the edge survives a luck check, and it beats the fees.",
         "You can replicate its fills, the profit isn't a few lucky trades, and it clears every cost."]), s3))
     def s4(img,d,t):
-        bg(img)
-        ctext(d,470,"FIND THEM YOURSELF",font(66),INK)
-        ctext(d,560,"BEFORE YOU COPY",font(66),INK)
-        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
-        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        draw_cta_card(img, d, "FIND THEM YOURSELF")
     scenes.append((pick([
-        "Vett finds the rare copyable ones for you, free, on Telegram.",
-        "Don't guess. Vett surfaces the real ones — free on Telegram."]), s4))
+        "Find the rare copyable ones yourself — open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
+        "Don't guess. Open Telegram, search at vett underscore h l bot, and let Vett surface the real ones, free."]), s4))
     return scenes
 
 # ---- alternate template: EDUCATIONAL "3 signs a wallet will lose you money" ----
@@ -512,15 +512,10 @@ def signs_scenes(rng):
             ctext(d,780,b,font(40,mono=False,bold=False),INK2,center=False,x=160)
         scenes.append((pick([f"{a[3:]}. {b}.", f"Sign {a[0]}. {a[3:]} — {b.lower()}."]), sc))
     def cta(img,d,t):
-        bg(img)
-        ctext(d,470,"VETT CHECKS",font(72),INK)
-        ctext(d,560,"ALL THREE FOR YOU",font(66),INK)
-        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
-        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        draw_cta_card(img, d, "VETT CHECKS ALL 3 FOR YOU")
     scenes.append((pick([
-        "Vett checks all three for you in seconds. Free, on Telegram.",
-        "Paste any wallet and Vett checks all three instantly. Free on Telegram."]), cta))
+        "Vett checks all three for you in seconds — open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
+        "Open Telegram, search at vett underscore h l bot, paste any wallet, and Vett checks all three instantly. Free."]), cta))
     return scenes
 
 # ---- template: FEATURE showcase (advertise what Vett does) ----
@@ -554,15 +549,10 @@ def feature_scenes(rng):
         "Check any wallet, filter for the copyable ones, and see what you'd actually make.",
         "A screener, a copy calculator, whale alerts, and gem alerts — all in one bot."]), s2))
     def cta(img,d,t):
-        bg(img)
-        ctext(d,470,"ALL FREE",font(84),INK)
-        ctext(d,570,"NO LOGIN",font(84),INK)
-        d.rounded_rectangle([150,760,W-150,1030],40,fill=(15,42,34))
-        ctext(d,810,"@vett_hl_bot",font(78,mono=True),TEAL)
-        ctext(d,930,"t.me/vett_hl_bot",font(48,mono=True),INK2)
+        draw_cta_card(img, d, "ALL FREE — NO LOGIN")
     scenes.append((pick([
-        "All free, no login. Vett, on Telegram.",
-        "Try it free — Vett, on Telegram."]), cta))
+        "All free, no login — open Telegram, search at vett underscore h l bot, and paste any wallet.",
+        "Try it free — open Telegram, search at vett underscore h l bot, and check any wallet."]), cta))
     return scenes
 
 def feature_template(rng):
@@ -634,7 +624,10 @@ def generate(out="output/short.mp4"):
     if not res: res=trap_template(rng)
     if not res: print("no story available"); return None
     scenes, meta, label = res
-    meta["description"] = meta.get("description", "") + "\n\n" + SEO_LINE + "\n\n" + DISCLAIMER  # SEO + legal
+    # First line = the clickable link (Shorts hide the on-screen handle behind a manual
+    # search; a description link is tappable and shows in the collapsed preview).
+    LINK_FIRST = "👉 Check ANY Hyperliquid wallet FREE → https://t.me/vett_hl_bot  (Telegram, no login)"
+    meta["description"] = LINK_FIRST + "\n\n" + meta.get("description", "") + "\n\n" + SEO_LINE + "\n\n" + DISCLAIMER
     print(f"template: {label}")
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
