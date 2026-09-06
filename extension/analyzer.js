@@ -1,4 +1,4 @@
-// Vett analyzer — self-contained JS port of the Python analyzer.
+// Vett analyzer, self-contained JS port of the Python analyzer.
 // Talks straight to Hyperliquid's public API. No backend, no keys.
 const HL_API = "https://api.hyperliquid.xyz/info";
 const TAKER = 0.00045;  // copier pays taker fee, both legs
@@ -13,7 +13,7 @@ async function hlPost(body) {
   return r.json();
 }
 
-// Mirror of analyze() in analyzer.py — keep the two in sync.
+// Mirror of analyze() in analyzer.py, keep the two in sync.
 async function analyze(addr) {
   const fills = await hlPost({ type: "userFills", user: addr });
   if (!fills || !fills.length) return null;
@@ -88,11 +88,11 @@ function verdict(a) {
   if (a.tooFew) return { v: "TOO FEW TRADES", flags: [] };
   const flags = [];
   if (a.maker_pct > 60)
-    flags.push(`MAKER-DEPENDENT: ${a.maker_pct.toFixed(0)}% maker volume — a taker copier can't replicate the spread edge`);
+    flags.push(`MAKER-DEPENDENT: ${a.maker_pct.toFixed(0)}% maker volume, a taker copier can't replicate the spread edge`);
   if (a.copier_pnl < 0)
     flags.push(`UNCOPYABLE: profitable for them but a copier paying fees+slippage nets ${money(a.copier_pnl)}`);
   if (a.top5_share > 80)
-    flags.push(`LUCK-CONCENTRATED: ${a.top5_share.toFixed(0)}% of profit is in 5 trades — drop them and it's ${money(a.pnl_ex_top5)}`);
+    flags.push(`LUCK-CONCENTRATED: ${a.top5_share.toFixed(0)}% of profit is in 5 trades, drop them and it's ${money(a.pnl_ex_top5)}`);
   if (a.span_days < 14)
     flags.push(`TOO NEW: only ${a.span_days.toFixed(0)} days of history`);
   if (a.coins < 3) flags.push(`UNDIVERSIFIED: only ${a.coins} coin(s)`);

@@ -5,72 +5,72 @@
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div id="head">
-    <span id="logo">Vett</span>
-    <span id="tag"></span>
-    <select id="lang"></select>
-  </div>
+ <div id="head">
+ <span id="logo">Vett</span>
+ <span id="tag"></span>
+ <select id="lang"></select>
+ </div>
 
-  <div id="tabs">
-    <button class="tab" data-view="check"></button>
-    <button class="tab" data-view="compare"></button>
-    <button class="tab" data-view="positions"></button>
-    <button class="tab" data-view="watch"></button>
-    <button class="tab" data-view="top"></button>
-  </div>
+ <div id="tabs">
+ <button class="tab" data-view="check"></button>
+ <button class="tab" data-view="compare"></button>
+ <button class="tab" data-view="positions"></button>
+ <button class="tab" data-view="watch"></button>
+ <button class="tab" data-view="top"></button>
+ </div>
 
-  <!-- CHECK -->
-  <div class="view" id="view-check">
-    <div class="inp"><input id="addr" type="text" spellcheck="false" autocomplete="off"><button id="go" class="pri"></button></div>
-    <div id="out"></div>
-  </div>
+ <!-- CHECK -->
+ <div class="view" id="view-check">
+ <div class="inp"><input id="addr" type="text" spellcheck="false" autocomplete="off"><button id="go" class="pri"></button></div>
+ <div id="out"></div>
+ </div>
 
-  <!-- COMPARE -->
-  <div class="view" id="view-compare" hidden>
-    <input id="cmpA" class="w" type="text" spellcheck="false" autocomplete="off">
-    <input id="cmpB" class="w" type="text" spellcheck="false" autocomplete="off">
-    <button id="cmpGo" class="pri w"></button>
-    <div id="cmpOut"></div>
-  </div>
+ <!-- COMPARE -->
+ <div class="view" id="view-compare" hidden>
+ <input id="cmpA" class="w" type="text" spellcheck="false" autocomplete="off">
+ <input id="cmpB" class="w" type="text" spellcheck="false" autocomplete="off">
+ <button id="cmpGo" class="pri w"></button>
+ <div id="cmpOut"></div>
+ </div>
 
-  <!-- POSITIONS -->
-  <div class="view" id="view-positions" hidden>
-    <div class="inp"><input id="posAddr" type="text" spellcheck="false" autocomplete="off"><button id="posGo" class="pri"></button></div>
-    <div id="posOut"></div>
-  </div>
+ <!-- POSITIONS -->
+ <div class="view" id="view-positions" hidden>
+ <div class="inp"><input id="posAddr" type="text" spellcheck="false" autocomplete="off"><button id="posGo" class="pri"></button></div>
+ <div id="posOut"></div>
+ </div>
 
-  <!-- WATCHLIST -->
-  <div class="view" id="view-watch" hidden>
-    <div id="watchHint" class="hint"></div>
-    <div id="whaleLbl" class="hint"></div>
-    <div class="inp"><input id="whaleMin" type="number" placeholder="25000"><button id="whaleSave" class="pri"></button></div>
-    <div id="watchOut"></div>
-  </div>
+ <!-- WATCHLIST -->
+ <div class="view" id="view-watch" hidden>
+ <div id="watchHint" class="hint"></div>
+ <div id="whaleLbl" class="hint"></div>
+ <div class="inp"><input id="whaleMin" type="number" placeholder="25000"><button id="whaleSave" class="pri"></button></div>
+ <div id="watchOut"></div>
+ </div>
 
-  <!-- TOP / SCREENER -->
-  <div class="view" id="view-top" hidden>
-    <div style="display:flex;gap:5px;margin-bottom:8px">
-      <input id="fMaker" type="number" placeholder="max mkr%" style="flex:1;min-width:0">
-      <input id="fMin" type="number" placeholder="min $" style="flex:1;min-width:0">
-      <input id="fDays" type="number" placeholder="min days" style="flex:1;min-width:0">
-    </div>
-    <button id="topGo" class="pri w"></button>
-    <div id="topOut"></div>
-  </div>
+ <!-- TOP / SCREENER -->
+ <div class="view" id="view-top" hidden>
+ <div style="display:flex;gap:5px;margin-bottom:8px">
+ <input id="fMaker" type="number" placeholder="max mkr%" style="flex:1;min-width:0">
+ <input id="fMin" type="number" placeholder="min $" style="flex:1;min-width:0">
+ <input id="fDays" type="number" placeholder="min days" style="flex:1;min-width:0">
+ </div>
+ <button id="topGo" class="pri w"></button>
+ <div id="topOut"></div>
+ </div>
 
-  <div id="foot">
-    <a id="botlink" href="https://t.me/vett_hl_bot" target="_blank">💬 Telegram bot</a>
-    <a id="shareLink" href="#" target="_blank"></a>
-  </div>
-  <div class="disc" id="disc">
-    Informational only, not financial advice. Figures are what a copier <b>would have</b> earned
-    over a past period, from public data — not predictions; past results don't guarantee future returns.
-    Perps are high-risk. <a href="https://excevity.github.io/vett/tos.html" target="_blank">Terms</a>
-  </div>
+ <div id="foot">
+ <a id="botlink" href="https://t.me/vett_hl_bot" target="_blank">💬 Telegram bot</a>
+ <a id="shareLink" href="#" target="_blank"></a>
+ </div>
+ <div class="disc" id="disc">
+ Informational only, not financial advice. Figures are what a copier <b>would have</b> earned
+ over a past period, from public data, not predictions; past results don't guarantee future returns.
+ Perps are high-risk. <a href="https://excevity.github.io/vett/tos.html" target="_blank">Terms</a>
+ </div>
 
-  <script src="errors.js"></script>
-  <script src="analyzer.js"></script>
-  <script src="i18n.js"></script>
-  <script src="popup.js"></script>
+ <script src="errors.js"></script>
+ <script src="analyzer.js"></script>
+ <script src="i18n.js"></script>
+ <script src="popup.js"></script>
 </body>
 </html>

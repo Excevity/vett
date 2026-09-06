@@ -1,4 +1,4 @@
-// Vett content script — flags Hyperliquid wallet addresses on the page with a
+// Vett content script, flags Hyperliquid wallet addresses on the page with a
 // verdict badge. Click a badge → inline card. All analysis runs in the
 // background worker (analyzer.js); this file only touches the DOM.
 (() => {

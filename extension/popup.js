@@ -1,7 +1,7 @@
 let lang = localStorage.getItem("vett_lang") || pickLang();
 const $ = (id) => document.getElementById(id);
 const ADDR_RE = /0x[0-9a-fA-F]{40}/;
-// `money` is already defined globally by analyzer.js — don't redeclare it here
+// `money` is already defined globally by analyzer.js, don't redeclare it here
 // (two declarations in the popup's shared scope = "already declared" SyntaxError).
 
 // ---------- watchlist storage (shared with the background alert worker) ----------
@@ -104,7 +104,7 @@ async function runCompare() {
     const out = [];
     for (const addr of [a, b]) {
       const an = await analyze(addr);
-      if (!an || an.tooFew) { out.push(`<div class="msg"><code>${addr.slice(0,8)}…</code> — ${T(lang,"nodata")}</div>`); continue; }
+      if (!an || an.tooFew) { out.push(`<div class="msg"><code>${addr.slice(0,8)}…</code>, ${T(lang,"nodata")}</div>`); continue; }
       out.push(verdictCard(an, verdict(an), addr));
     }
     $("cmpOut").innerHTML = out.join("");
@@ -203,7 +203,7 @@ function buildLang() {
   sel.onchange = () => { lang = sel.value; localStorage.setItem("vett_lang", lang); applyLang(); };
 }
 
-// wire up — wrapped so any failure SHOWS in the popup instead of a blank UI
+// wire up, wrapped so any failure SHOWS in the popup instead of a blank UI
 function init() {
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => showView(t.dataset.view));
   $("go").onclick = runCheck;

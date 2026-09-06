@@ -1,4 +1,4 @@
-# TikTok Content Posting API — Audit Submission (copy-paste ready)
+# TikTok Content Posting API, Audit Submission (copy-paste ready)
 
 Use this when you submit the Vett app for the Content Posting audit (to unlock
 `video.publish` / direct public posting so you stop posting drafts by hand).
@@ -6,7 +6,7 @@ Use this when you submit the Vett app for the Content Posting audit (to unlock
 ---
 
 ## Field: "Explain how each product and scope works within your app or website"
-(Paste this — it's ~880 characters, under the 1000 limit.)
+(Paste this, it's ~880 characters, under the 1000 limit.)
 
 ```
 Vett is an automated content tool that publishes short, data-driven videos about
@@ -33,24 +33,24 @@ https://excevity.github.io/vett/
 TikTok requires the demo to show the **complete end-to-end integration**, on the
 **same domain** as your app website (`excevity.github.io/vett`). Record this order:
 
-1. **Show the website** — open `https://excevity.github.io/vett/` for ~2s (proves the domain matches).
-2. **Show the authorization (Login Kit)** — open the TikTok auth link, sign in,
-   and approve the `user.info.basic` + `video.upload` scopes. (You can reuse the
-   auth flow we already did; just screen-record it once.)
-3. **Show the upload (Content Posting API)** — run the pipeline (or trigger the
-   GitHub Action) so a video is uploaded, and show the terminal/log line
-   `TikTok: sent to your drafts …` OR the resulting draft appearing in the TikTok app.
-4. **Show the result** — open the TikTok app → inbox/drafts → the uploaded video is
-   there, ready to post. Tapping through to post it is a nice finish.
+1. **Show the website**, open `https://excevity.github.io/vett/` for ~2s (proves the domain matches).
+2. **Show the authorization (Login Kit)**, open the TikTok auth link, sign in,
+ and approve the `user.info.basic` + `video.upload` scopes. (You can reuse the
+ auth flow we already did; just screen-record it once.)
+3. **Show the upload (Content Posting API)**, run the pipeline (or trigger the
+ GitHub Action) so a video is uploaded, and show the terminal/log line
+ `TikTok: sent to your drafts …` OR the resulting draft appearing in the TikTok app.
+4. **Show the result**, open the TikTok app → inbox/drafts → the uploaded video is
+ there, ready to post. Tapping through to post it is a nice finish.
 
 Tips TikTok looks for:
 - The website domain in the demo must match the URL you entered in app settings.
 - Every product/scope you selected (Login Kit, Content Posting API, user.info.basic,
-  video.upload) must be visibly demonstrated — if you don't use one, remove it first.
+ video.upload) must be visibly demonstrated, if you don't use one, remove it first.
 - Clear UI + user interactions; no fast cuts.
 - mp4 or mov, ≤50MB.
 
 ## After approval
-Tell me and I'll set the repo variable `TIKTOK_DIRECT=1` — the pipeline then posts
+Tell me and I'll set the repo variable `TIKTOK_DIRECT=1`, the pipeline then posts
 straight to public instead of drafts. (Until then, drafts + you tapping post works fine.)
 ```

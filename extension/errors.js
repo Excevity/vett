@@ -1,4 +1,4 @@
-// Loaded FIRST — a catch-all that paints any script error/load-failure into the
+// Loaded FIRST, a catch-all that paints any script error/load-failure into the
 // popup, so the UI can never fail silently (blank).
 (function () {
   function show(msg) {
@@ -10,7 +10,7 @@
   window.addEventListener("error", function (e) {
     if (e && e.target && (e.target.src || e.target.href)) {
       show("A file failed to load:\n" + (e.target.src || e.target.href)
-        + "\n\n(the extension folder is likely missing this file — re-download & reload)");
+        + "\n\n(the extension folder is likely missing this file, re-download & reload)");
     } else {
       show((e.message || String(e)) + "\n  at " + (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || ""));
     }

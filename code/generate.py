@@ -1,6 +1,6 @@
-"""Vett content generator — turns a scanner story into a vertical data-driven short.
+"""Vett content generator, turns a scanner story into a vertical data-driven short.
 Pure data visuals (no stock footage), Piper narration, burned captions.
-Numbers are templated straight from real scanner output — never invented."""
+Numbers are templated straight from real scanner output, never invented."""
 import os,sys,json,subprocess,shutil,math,textwrap,random,urllib.request,urllib.parse
 from io import BytesIO
 sys.path.insert(0,os.path.dirname(__file__))
@@ -55,7 +55,7 @@ def _fit_font(txt, max_w, start, floor=32, mono=False, bold=True):
         s -= 2
     return font(s, mono=mono, bold=bold)
 
-def draw_cta_card(img, d, headline="CHECK ANY WALLET — FREE"):
+def draw_cta_card(img, d, headline="CHECK ANY WALLET, FREE"):
     """Shared end card built for CONVERSION. On Shorts/TikTok '@vett_hl_bot' is NOT a
     clickable link, so we tell the viewer the exact 3 steps to get there instead of
     just flashing the handle. Every template's CTA scene uses this."""
@@ -121,7 +121,7 @@ def fetch_bg(query):
     return None
 
 def chart_bg(rng=None, up_bias=0.0):
-    """Draw a subtle, ON-TOPIC candlestick chart as the backdrop — always relevant
+    """Draw a subtle, ON-TOPIC candlestick chart as the backdrop, always relevant
     and clean, unlike random stock photos. Dark/desaturated so data stays the focus."""
     rng = rng or random
     img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
@@ -172,7 +172,7 @@ def draw_caption(img,d,text,t=1.0,speech_frac=1.0):
         if vis:
             s=" ".join(vis)
             bb=d.textbbox((0,0),s,font=fnt); wpx=bb[2]-bb[0]
-            # white fill, teal (green) outline — pops off any background
+            # white fill, teal (green) outline, pops off any background
             d.text(((W-wpx)//2,yy),s,font=fnt,fill=(255,255,255),
                    stroke_width=6,stroke_fill=TEAL)
         yy+=lh
@@ -222,7 +222,7 @@ def build_scenes(s, rng=None):
         f"It's showing {say_money(s['raw_pnl'])} in gains, with {s['win_rate']:.0f} percent of trades green."]), s1))
 
     # 2 TURN
-    turn_top = pick(["but what happens if","but watch what happens when","now here's the catch —"])
+    turn_top = pick(["but what happens if","but watch what happens when","now here's the catch, "])
     turn_bot = pick(["actually copy it?","actually try to copy it?","copy this wallet?"])
     def s2(img,d,t):
         bg(img)
@@ -236,7 +236,7 @@ def build_scenes(s, rng=None):
         "Now here's what they won't tell you. What happens the moment you copy it?",
         "But watch what happens the second you try to copy this wallet."]), s2))
 
-    # 3 REVEAL — copier LOSS, or a MAKER you can't copy at all
+    # 3 REVEAL, copier LOSS, or a MAKER you can't copy at all
     if tt=='maker':
         def s3(img,d,t):
             bg(img)
@@ -245,12 +245,12 @@ def build_scenes(s, rng=None):
             ctext(d,680,"YOU CAN'T",font(120,mono=True),RED)
             ctext(d,820,"COPY THIS",font(120,mono=True),RED)
             ctext(d,1040,f"{s['maker_pct']:.0f}% MARKET-MAKER FILLS",font(46,mono=True),INK2)
-            ctext(d,1180,"they earn the spread — you'd take",font(40,mono=False,bold=False),INK2)
+            ctext(d,1180,"they earn the spread, you'd take",font(40,mono=False,bold=False),INK2)
             ctext(d,1240,"the worse side of every trade",font(40,mono=False,bold=False),INK2)
         scenes.append((pick([
             "Here's the catch. This is a market maker. They earn the spread. Copy them by taking trades, "
             "and you get the worse side of every single fill. You literally can't replicate it.",
-            "Turns out it's a market maker. Their profit comes from the spread — something a copier taking "
+            "Turns out it's a market maker. Their profit comes from the spread, something a copier taking "
             "trades can never capture. You'd be on the wrong side of every fill."]), s3))
     else:
         def s3(img,d,t):
@@ -267,7 +267,7 @@ def build_scenes(s, rng=None):
             f"A copier ends up down {say_money(s['copier_pnl'])}.",
             f"After the real costs, you lose {say_money(s['copier_pnl'])}."]), s3))
 
-    # 4 WHY (flags) — shuffled order per video
+    # 4 WHY (flags), shuffled order per video
     reasons=[]
     if s['maker_pct']>50: reasons.append(("Market maker","You can't copy their spread edge"))
     if s['top5_share']>80: reasons.append((f"{s['top5_share']:.0f}% luck","Nearly all profit from 5 trades"))
@@ -291,13 +291,13 @@ def build_scenes(s, rng=None):
         "The fees burn the edge, and most of the wins were just a few lucky trades you'd never catch.",
         "Their volume eats the profit, and the gains came from trades a copier can't replicate."]), s4))
 
-    # 5 CTA — explicit 3-step conversion card (handle isn't clickable on Shorts)
+    # 5 CTA, explicit 3-step conversion card (handle isn't clickable on Shorts)
     def s5(img,d,t):
-        draw_cta_card(img, d, "CHECK ANY WALLET — FREE")
+        draw_cta_card(img, d, "CHECK ANY WALLET, FREE")
     scenes.append((pick([
         "Want to check a wallet yourself? Open Telegram, search at vett underscore h l bot, and paste any address. It's free.",
         "Do this before you copy anyone: open Telegram, search at vett underscore h l bot, paste the wallet. Free, no login.",
-        "Here's how to check any wallet free — open Telegram, search at vett underscore h l bot, and paste the address."]), s5))
+        "Here's how to check any wallet free, open Telegram, search at vett underscore h l bot, and paste the address."]), s5))
     return scenes
 
 # ---------------- TTS (Kokoro, natural voice) ----------------
@@ -323,13 +323,13 @@ VETT_TAGS=["hyperliquid","hyperliquid copy trading","copy trading","crypto copy 
     "hyperliquid wallet tracker","smart money tracker","whale tracker","perps trading",
     "hyperliquid leaderboard","crypto trading","trading bot","defi trading","bitcoin","HYPE crypto","vett"]
 # keyword-dense line appended to every description for YouTube/TikTok search
-SEO_LINE=("Hyperliquid copy trading, honest wallet vetting, and smart-money / whale tracking — "
+SEO_LINE=("Hyperliquid copy trading, honest wallet vetting, and smart-money / whale tracking, "
           "see what a copier would really earn after fees, slippage and luck, free on Telegram.")
 CTA_LINE="Check any wallet free before you copy it → @vett_hl_bot on Telegram (t.me/vett_hl_bot)."
 # Plain-English legal shield, appended to every description. Backward-looking on
 # purpose: figures are what a copier WOULD HAVE earned over an already-finished
-# period — never a promise of future gains.
-DISCLAIMER=("Educational only — not financial advice. Any figures show what a copier WOULD HAVE "
+# period, never a promise of future gains.
+DISCLAIMER=("Educational only, not financial advice. Any figures show what a copier WOULD HAVE "
             "earned over the past period analyzed, from public on-chain data; past results do not "
             "predict future returns. Trading perpetuals is high-risk and you can lose all your funds. "
             "Do your own research. Vett is independent and not affiliated with Hyperliquid.")
@@ -364,10 +364,10 @@ def top3_scenes(rows, rng):
             f"Number {idx}. A copier would have netted {say_money(a['copier_pnl'])}, and it holds up even when you drop the luckiest trades.",
             f"Number {idx}. After every real cost, a copier would have made {say_money(a['copier_pnl'])} over this period."]), card))
     def cta(img,d,t):
-        draw_cta_card(img, d, "CHECK ANY WALLET — FREE")
+        draw_cta_card(img, d, "CHECK ANY WALLET, FREE")
     scenes.append((pick([
         "Want the full list? Open Telegram, search at vett underscore h l bot, and paste any wallet. It's free.",
-        "Check any wallet yourself — open Telegram, search at vett underscore h l bot, paste the address. Free, no login."]), cta))
+        "Check any wallet yourself, open Telegram, search at vett underscore h l bot, paste the address. Free, no login."]), cta))
     return scenes
 
 # ---- alternate template: LEADERBOARD TRUTH-CHECK ----
@@ -405,7 +405,7 @@ def truth_scenes(n, pct, rng):
     def cta(img,d,t):
         draw_cta_card(img, d, "KNOW BEFORE YOU COPY")
     scenes.append((pick([
-        "Check any wallet free before you copy — open Telegram, search at vett underscore h l bot, and paste the address.",
+        "Check any wallet free before you copy, open Telegram, search at vett underscore h l bot, and paste the address.",
         "Don't find out the hard way. Open Telegram, search at vett underscore h l bot, and check the wallet free."]), cta))
     return scenes
 
@@ -415,7 +415,7 @@ def trap_template(rng):
     if not s: return None
     scenes=build_scenes(s,rng)
     if s.get('trap_type')=='maker':
-        title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])} — but you CAN'T copy it 🚩"
+        title=f"This Hyperliquid 'top trader' made {money(s['raw_pnl'])}, but you CAN'T copy it 🚩"
         desc=(f"They advertise {money(s['raw_pnl'])} profit, but {s['maker_pct']:.0f}% is market-maker fills. "
               f"Copy them by taking and you get the worse side of every trade.\n\n{CTA_LINE}\n\n{HASHTAGS}")
     else:
@@ -430,7 +430,7 @@ def top3_template(rng):
     if len(good)<3: return None
     rows=good[:3]
     title="3 Hyperliquid wallets a copier could ACTUALLY follow ✅"
-    desc=("Most 'winners' would lose a copier money — these three pass every honesty check "
+    desc=("Most 'winners' would lose a copier money, these three pass every honesty check "
           f"(real fees, slippage, no maker rebate, luck test).\n\nVet any wallet free → @vett_hl_bot "
           f"on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
     return top3_scenes(rows,rng), dict(kind='top3',addr=rows[0]['addr'],title=title,description=desc,tags=VETT_TAGS), "top3"
@@ -439,7 +439,7 @@ def truth_template(rng):
     d=_scan(); n=len(d)
     if n<20: return None
     pct=100*sum(1 for a in d if a.get('final_verdict')=='DO NOT COPY')/n
-    title=f"I checked {n} Hyperliquid 'top' wallets — {pct:.0f}% would lose you money 🚩"
+    title=f"I checked {n} Hyperliquid 'top' wallets, {pct:.0f}% would lose you money 🚩"
     desc=(f"{pct:.0f}% of the leaderboard's 'winners' would lose a copier money after real fees, "
           f"slippage and luck.\n\n{CTA_LINE}\n\n{HASHTAGS}")
     return truth_scenes(n,pct,rng), dict(kind='truth',addr='',title=title,description=desc,tags=VETT_TAGS), "truthcheck"
@@ -453,10 +453,10 @@ def spotlight_scenes(a, rng):
         ctext(d,360,"HYPERLIQUID",font(46,mono=True),INK3)
         ctext(d,430,"A WALLET YOU CAN",font(80),INK)
         ctext(d,540,"ACTUALLY COPY",font(80),GREEN)
-        ctext(d,760,"(rare — most can't be)",font(44,mono=True),INK2)
+        ctext(d,760,"(rare, most can't be)",font(44,mono=True),INK2)
     scenes.append((pick([
         "Almost every 'top' Hyperliquid wallet is a trap. This one isn't.",
-        "I check the leaderboard every day. Genuinely copyable wallets are rare — here's one."]), s1))
+        "I check the leaderboard every day. Genuinely copyable wallets are rare, here's one."]), s1))
     def s2(img,d,t):
         bg(img)
         ctext(d,300,"✅ COPYABLE",font(88),GREEN)
@@ -485,7 +485,7 @@ def spotlight_scenes(a, rng):
     def s4(img,d,t):
         draw_cta_card(img, d, "FIND THEM YOURSELF")
     scenes.append((pick([
-        "Find the rare copyable ones yourself — open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
+        "Find the rare copyable ones yourself, open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
         "Don't guess. Open Telegram, search at vett underscore h l bot, and let Vett surface the real ones, free."]), s4))
     return scenes
 
@@ -510,11 +510,11 @@ def signs_scenes(rng):
             d.rounded_rectangle([110,620,W-110,900],28,fill=PANEL)
             ctext(d,680,a.split('. ',1)[1],font(60),INK,center=False,x=160)
             ctext(d,780,b,font(40,mono=False,bold=False),INK2,center=False,x=160)
-        scenes.append((pick([f"{a[3:]}. {b}.", f"Sign {a[0]}. {a[3:]} — {b.lower()}."]), sc))
+        scenes.append((pick([f"{a[3:]}. {b}.", f"Sign {a[0]}. {a[3:]}, {b.lower()}."]), sc))
     def cta(img,d,t):
         draw_cta_card(img, d, "VETT CHECKS ALL 3 FOR YOU")
     scenes.append((pick([
-        "Vett checks all three for you in seconds — open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
+        "Vett checks all three for you in seconds, open Telegram, search at vett underscore h l bot, and paste any wallet. Free.",
         "Open Telegram, search at vett underscore h l bot, paste any wallet, and Vett checks all three instantly. Free."]), cta))
     return scenes
 
@@ -527,7 +527,7 @@ def feature_scenes(rng):
         ctext(d,530,"DOES FOR YOU",font(84),TEAL)
         ctext(d,760,"free · on Telegram",font(46,mono=True),INK2)
     scenes.append((pick([
-        "Here's everything Vett does for you — free.",
+        "Here's everything Vett does for you, free.",
         "Vett is more than a wallet checker. Here's what it does."]), s1))
     feats=[("🔍","Check any wallet","honest copy verdict + grade"),
            ("🔎","Screener","filter for the real ones"),
@@ -547,19 +547,19 @@ def feature_scenes(rng):
             y+=210
     scenes.append((pick([
         "Check any wallet, filter for the copyable ones, and see what you'd actually make.",
-        "A screener, a copy calculator, whale alerts, and gem alerts — all in one bot."]), s2))
+        "A screener, a copy calculator, whale alerts, and gem alerts, all in one bot."]), s2))
     def cta(img,d,t):
-        draw_cta_card(img, d, "ALL FREE — NO LOGIN")
+        draw_cta_card(img, d, "ALL FREE, NO LOGIN")
     scenes.append((pick([
-        "All free, no login — open Telegram, search at vett underscore h l bot, and paste any wallet.",
-        "Try it free — open Telegram, search at vett underscore h l bot, and check any wallet."]), cta))
+        "All free, no login, open Telegram, search at vett underscore h l bot, and paste any wallet.",
+        "Try it free, open Telegram, search at vett underscore h l bot, and check any wallet."]), cta))
     return scenes
 
 def feature_template(rng):
     return feature_scenes(rng), dict(kind='feature',addr='',
         title="Everything Vett does for Hyperliquid copy-traders (free) 🛠️",
         description=("Check any wallet's honest copy verdict, filter for the copyable ones, calculate "
-          f"what you'd really make, and get whale + gem alerts — free on Telegram.\n\n@vett_hl_bot "
+          f"what you'd really make, and get whale + gem alerts, free on Telegram.\n\n@vett_hl_bot "
           f"(t.me/vett_hl_bot)\n\n{HASHTAGS}"),
         tags=VETT_TAGS), "feature"
 
@@ -569,13 +569,13 @@ def spotlight_template(rng):
     if not good: return None
     a=good[0]
     title=f"A Hyperliquid wallet you can ACTUALLY copy (+{money(a['copier_pnl']).lstrip('+')}) ✅"
-    desc=("Rare: this wallet passes every honesty check — taker-executable, survives a luck test, "
+    desc=("Rare: this wallet passes every honesty check, taker-executable, survives a luck test, "
           f"and beats the fees.\n\nVet any wallet free → @vett_hl_bot on Telegram (t.me/vett_hl_bot).\n\n{HASHTAGS}")
     return spotlight_scenes(a,rng), dict(kind='spotlight',addr=a['addr'],title=title,description=desc,tags=VETT_TAGS), "spotlight"
 
 def signs_template(rng):
     title="3 signs a Hyperliquid wallet would LOSE you money 🚩"
-    desc=("Market-maker fills, luck-concentrated profit, and fees bigger than the edge — the three "
+    desc=("Market-maker fills, luck-concentrated profit, and fees bigger than the edge, the three "
           f"reasons a 'green' wallet loses a copier money.\n\n{CTA_LINE}\n\n{HASHTAGS}")
     return signs_scenes(rng), dict(kind='signs',addr='',title=title,description=desc,tags=VETT_TAGS), "signs"
 
@@ -632,8 +632,8 @@ def generate(out="output/short.mp4"):
     # optional darkened photo backdrop (only if PEXELS_KEY is set)
     global _BGIMG
     # Default backdrop = a procedurally-drawn candlestick chart: always on-topic
-    # and clean. (Stock-photo search kept returning irrelevant junk — candles,
-    # cell towers — so photos are now opt-in via VETT_PHOTOS=1.)
+    # and clean. (Stock-photo search kept returning irrelevant junk, candles,
+    # cell towers, so photos are now opt-in via VETT_PHOTOS=1.)
     if os.environ.get("VETT_PHOTOS") == "1":
         _BGIMG = fetch_bg(random.choice(["forex trading graph","bitcoin price chart","market data screen"]))
         print(f"  backdrop: photo {'on' if _BGIMG is not None else 'failed→chart'}")

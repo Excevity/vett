@@ -1,5 +1,5 @@
 // Service worker: runs analysis off-page (for content.js) AND runs watchlist
-// alerts on a timer — re-vets watched wallets and fires a desktop notification
+// alerts on a timer, re-vets watched wallets and fires a desktop notification
 // when a verdict changes. No server; all local to the browser.
 importScripts("analyzer.js");
 
@@ -62,7 +62,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
       if (ov && ov !== nv) {
         chrome.notifications.create("vett-v-" + addr + Date.now(), {
           type: "basic", iconUrl: "icons/128.png",
-          title: "Vett — verdict changed",
+          title: "Vett, verdict changed",
           message: `${addr.slice(0, 8)}…${addr.slice(-4)}\n${ov} → ${nv}`, priority: 2,
         });
       }
@@ -74,7 +74,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
         if (whaleMin > 0 && val >= whaleMin && val - prev >= whaleMin) {
           chrome.notifications.create("vett-w-" + addr + coin + Date.now(), {
             type: "basic", iconUrl: "icons/128.png",
-            title: "🐋 Vett — whale move",
+            title: "🐋 Vett, whale move",
             message: `${addr.slice(0, 8)}… ${side} ${coin} ~$${val.toLocaleString("en-US", { maximumFractionDigits: 0 })}\nVerdict: ${nv}`,
             priority: 2,
           });
