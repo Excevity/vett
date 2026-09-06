@@ -1,24 +1,15 @@
 name: Daily Vett Short
 
 on:
-  # Three posts a day (three "slots"), each with 3 attempts, because GitHub's
-  # cron is best-effort and often skips/delays. The guard (code/slot.py) posts
-  # exactly ONCE per slot — first attempt that lands wins, the rest skip. Each
-  # run posts to BOTH YouTube and TikTok. Odd minutes dodge on-the-hour load.
-  # Times are UTC (no DST).
+  # ONE post a day, with 3 attempts because GitHub's cron is best-effort and
+  # often skips/delays. The guard (code/slot.py) posts exactly ONCE per day:
+  # first attempt that lands wins, the rest skip. Each run posts to BOTH YouTube
+  # and TikTok. Odd minutes dodge on-the-hour load. Times are UTC (no DST).
+  # ~1:37 PM ET first attempt, two fallbacks after.
   schedule:
-    # s1 (before 16:00 UTC):
-    - cron: "37 13 * * *"
-    - cron: "19 14 * * *"
-    - cron: "3 15 * * *"
-    # s2 (16:00–21:00 UTC):
-    - cron: "37 18 * * *"
-    - cron: "19 19 * * *"
-    - cron: "3 20 * * *"
-    # s3 (21:00 UTC and later):
-    - cron: "37 21 * * *"
-    - cron: "19 22 * * *"
-    - cron: "3 23 * * *"
+    - cron: "37 17 * * *"
+    - cron: "19 18 * * *"
+    - cron: "3 19 * * *"
   workflow_dispatch:
     inputs:
       privacy:

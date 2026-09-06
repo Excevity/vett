@@ -24,7 +24,7 @@ def main():
     if not os.path.exists(vid):
         print("no output/short.mp4 — run generate.py first"); return 1
     meta = json.load(open(meta_p)) if os.path.exists(meta_p) else {
-        "title": "Vett — check any Hyperliquid wallet", "description": "@vett_hl_bot on Telegram",
+        "title": "Vett: check any Hyperliquid wallet", "description": "@vett_hl_bot on Telegram",
         "tags": ["hyperliquid", "crypto", "copytrading"]}
     r = upload(vid, meta["title"], meta["description"], meta.get("tags"), privacy=privacy)
     if r:
@@ -32,10 +32,13 @@ def main():
     else:
         print("YouTube upload skipped/failed (check YT_* creds)")
     # TikTok (optional; skips if TIKTOK_* not set). Draft mode unless audited.
+    # TikTok puts hashtags in the caption, so append them to the title here.
+    TIKTOK_HASHTAGS = "#hyperliquid #crypto #bitcoin #trading #vett"
     try:
         from tiktok_upload import upload as tt_upload
         tt_priv = "PUBLIC_TO_EVERYONE" if privacy == "public" else "SELF_ONLY"
-        tt_upload(vid, meta["title"], privacy=tt_priv)
+        tt_caption = f'{meta["title"]} {TIKTOK_HASHTAGS}'
+        tt_upload(vid, tt_caption, privacy=tt_priv)
     except Exception as e:
         print(f"TikTok step error (non-fatal): {e}")
     return 0 if r else 1

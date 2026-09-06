@@ -46,7 +46,7 @@ def upload(path, title="", privacy="SELF_ONLY"):
     body = {"source_info": {"source": "FILE_UPLOAD", "video_size": size,
                             "chunk_size": size, "total_chunk_count": 1}}
     if direct:
-        body["post_info"] = {"title": title[:150], "privacy_level": privacy,
+        body["post_info"] = {"title": title[:220], "privacy_level": privacy,
                              "disable_comment": False, "disable_duet": False,
                              "disable_stitch": False}
     init_url = DIRECT if direct else INBOX
@@ -70,4 +70,4 @@ def upload(path, title="", privacy="SELF_ONLY"):
 if __name__ == "__main__":
     import sys
     p = sys.argv[1] if len(sys.argv) > 1 else "output/short.mp4"
-    upload(p, "Check any Hyperliquid wallet before you copy it — @vett_hl_bot")
+    upload(p, "Check any Hyperliquid wallet before you copy it. @vett_hl_bot #hyperliquid #crypto #bitcoin #trading #vett")
