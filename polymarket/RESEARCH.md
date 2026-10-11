@@ -1,5 +1,9 @@
 # Polymarket trading bots: research notes (Oct 2026)
 
+> Update: the deep dive with fee math for strategies B (basket arbitrage),
+> F (near-sure bets) and G (copy trading) is in `STRATEGIES.md`. Its fee
+> numbers come from Polymarket's own code and replace the ones below.
+
 Plain-language notes on the ways people try to make money with bots on
 Polymarket, and how likely each one is to work for a small, solo trader.
 
@@ -76,7 +80,7 @@ can wipe them out.
 
 ## 4. Strategies, ranked by how realistic they are for us
 
-### A. Market making + liquidity rewards — **most realistic**
+### A. Market making + liquidity rewards — **ruled out (researched separately)**
 **What it is:** the bot keeps a buy order a bit below the fair price and a sell
 order a bit above it. When both fill, you keep the gap (the spread).
 

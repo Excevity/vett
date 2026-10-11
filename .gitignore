@@ -17,3 +17,6 @@ state/used.json
 data/*.json
 __pycache__/
 *.pyc
+
+# polymarket research datasets (downloaded)
+polymarket/data/
